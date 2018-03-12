@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6500 64-bit) (preloaded format=pdflatex 2018.1.29)  10 MAR 2018 04:07
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6500 64-bit) (preloaded format=pdflatex 2018.1.29)  11 MAR 2018 23:20
 entering extended mode
 **./proposal.tex
 (proposal.tex
@@ -6,8 +6,8 @@ LaTeX2e <2017-04-15>
 Babel <3.15> and hyphenation patterns for 75 language(s) loaded.
 ("C:\Program Files\MiKTeX 2.9\tex\latex\base\article.cls"
 Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
-("C:\Program Files\MiKTeX 2.9\tex\latex\base\size11.clo"
-File: size11.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+("C:\Program Files\MiKTeX 2.9\tex\latex\base\size10.clo"
+File: size10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
 )
 \c@part=\count79
 \c@section=\count80
@@ -140,6 +140,61 @@ LaTeX Font Info:    Redeclaring font encoding OMS on input line 713.
 \mathdisplay@stack=\toks21
 LaTeX Info: Redefining \[ on input line 2817.
 LaTeX Info: Redefining \] on input line 2818.
+)
+("C:\Program Files\MiKTeX 2.9\tex\latex\algorithm2e\algorithm2e.sty"
+Package: algorithm2e 2017/07/18 v5.2 algorithms environments
+\c@AlgoLine=\count102
+
+("C:\Program Files\MiKTeX 2.9\tex\latex\base\ifthen.sty"
+Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
+)
+\algocf@hangindent=\skip46
+
+("C:\Program Files\MiKTeX 2.9\tex\latex\ifoddpage\ifoddpage.sty"
+Package: ifoddpage 2016/04/23 v1.1 Conditionals for odd/even page detection
+\c@checkoddpage=\count103
+)
+("C:\Program Files\MiKTeX 2.9\tex\latex\tools\xspace.sty"
+Package: xspace 2014/10/28 v1.13 Space after command names (DPC,MH)
+)
+("C:\Program Files\MiKTeX 2.9\tex\latex\ltxmisc\relsize.sty"
+Package: relsize 2003/07/04 ver 3.1
+)
+\skiptotal=\skip47
+\skiplinenumber=\skip48
+\skiprule=\skip49
+\skiphlne=\skip50
+\skiptext=\skip51
+\skiplength=\skip52
+\algomargin=\skip53
+\skipalgocfslide=\skip54
+\algowidth=\dimen122
+\inoutsize=\dimen123
+\inoutindent=\dimen124
+\interspacetitleruled=\dimen125
+\interspacealgoruled=\dimen126
+\interspacetitleboxruled=\dimen127
+\algocf@ruledwidth=\skip55
+\algocf@inoutbox=\box28
+\algocf@inputbox=\box29
+\AlCapSkip=\skip56
+\AlCapHSkip=\skip57
+\algoskipindent=\skip58
+\algocf@nlbox=\box30
+\algocf@hangingbox=\box31
+\algocf@untilbox=\box32
+\algocf@skipuntil=\skip59
+\algocf@capbox=\box33
+\algocf@lcaptionbox=\skip60
+\algoheightruledefault=\skip61
+\algoheightrule=\skip62
+\algotitleheightruledefault=\skip63
+\algotitleheightrule=\skip64
+\c@algocfline=\count104
+\c@algocfproc=\count105
+\c@algocf=\count106
+\algocf@algoframe=\box34
+\algocf@algobox=\box35
 ) (proposal.aux)
 \openout1 = `proposal.aux'.
 
@@ -175,12 +230,12 @@ LaTeX Font Info:    ... okay on input line 17.
 * \topmargin=-13.87262pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=11.0pt
+* \topskip=10.0pt
 * \footskip=30.0pt
-* \marginparwidth=59.0pt
-* \marginparsep=10.0pt
+* \marginparwidth=65.0pt
+* \marginparsep=11.0pt
 * \columnsep=10.0pt
-* \skip\footins=10.0pt plus 4.0pt minus 2.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -192,16 +247,16 @@ LaTeX Font Info:    ... okay on input line 17.
 
 ("C:\Program Files\MiKTeX 2.9\tex\context\base\supp-pdf.mkii"
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count102
-\scratchdimen=\dimen122
-\scratchbox=\box28
-\nofMPsegments=\count103
-\nofMParguments=\count104
+\scratchcounter=\count107
+\scratchdimen=\dimen128
+\scratchbox=\box36
+\nofMPsegments=\count108
+\nofMParguments=\count109
 \everyMPshowfont=\toks22
-\MPscratchCnt=\count105
-\MPscratchDim=\dimen123
-\MPnumerator=\count106
-\makeMPintoPDFobject=\count107
+\MPscratchCnt=\count110
+\MPscratchDim=\dimen129
+\MPnumerator=\count111
+\makeMPintoPDFobject=\count112
 \everyMPtoPDFconversion=\toks23
 ) ("C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\epstopdf-base.sty"
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
@@ -260,47 +315,87 @@ LaTeX Font Info:    Try loading font information for U+msb on input line 18.
 
 ("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
-<figures/AlexClassification.png, id=1, 1224.575pt x 504.88625pt>
-File: figures/AlexClassification.png Graphic file (type png)
-<use figures/AlexClassification.png>
-Package pdftex.def Info: figures/AlexClassification.png  used on input line 35.
- on input line 35.
-Package pdftex.def Info: Requested size: 232.67166pt x 95.92937pt on input line
- 35.
- [1
+) [1
 
-{C:/Users/ibiyt/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map} <./figures/A
-lexClassification.png (PNG copy)>]
-<figures/cnnrnnmodel.jpeg, id=10, 650.43pt x 280.6485pt>
-File: figures/cnnrnnmodel.jpeg Graphic file (type jpg)
-<use figures/cnnrnnmodel.jpeg>
-Package pdftex.def Info: figures/cnnrnnmodel.jpeg  used on input line 45. on in
-put line 45.
-Package pdftex.def Info: Requested size: 325.2142pt x 140.3239pt on input line 
-45.
- [2 <./figures/cnnrnnmodel.jpeg>] (proposal.aux) ) 
+{C:/Users/ibiyt/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ì in font cmr10!
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ú in font cmr10!
+ [2]
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ù in font cmr10!
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ì in font cmr10!
+
+Overfull \hbox (59.98734pt too wide) in paragraph at lines 78--79
+[]\OT1/cmr/m/n/10 cortex. The Jour-nal of Phys-i-ol-ogy, vol. 195, no. 1, Jan. 
+1968, pp. 215243., doi:10.1113/jphysiol.1968.sp008455. 
+ []
+
+
+Overfull \hbox (15.24637pt too wide) in paragraph at lines 91--92
+[]\OT1/cmr/m/n/10 Retrieved March 11, 2018, from https://ujjwalkarn.me/2016/08/
+11/intuitive-explanation-convnets/ 
+ []
+
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ú in font cmr10!
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ù in font cmr10!
+
+Overfull \hbox (26.8852pt too wide) in paragraph at lines 106--108
+[]\OT1/cmr/m/n/10 2015-17-09, http://www.wildml.com/2015/09/recurrent-neural-ne
+tworks-tutorial-part-1-introduction-
+ []
+
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ú in font cmr10!
+Missing character: There is no ‚ in font cmr10!
+Missing character: There is no Ä in font cmr10!
+Missing character: There is no ù in font cmr10!
+
+Overfull \hbox (52.60747pt too wide) in paragraph at lines 112--113
+[]\OT1/cmr/m/n/10 International Con-fer-ence on Acous-tics, Speech and Sig-nal 
+Pro-cess-ing, 2013, doi:10.1109/icassp.2013.6638947. 
+ []
+
+
+Overfull \hbox (19.49626pt too wide) in paragraph at lines 124--126
+[]\OT1/cmr/m/n/10 Machine Learn-ing Mas-tery, 2017-17-11, https://machinelearni
+ngmastery.com/deep-learning-caption-
+ []
+
+[3] (proposal.aux) ) 
 Here is how much of TeX's memory you used:
- 2820 strings out of 493312
- 37897 string characters out of 3138899
- 102734 words of memory out of 3000000
- 6329 multiletter control sequences out of 15000+200000
- 10440 words of font info for 40 fonts, out of 3000000 for 9000
+ 3799 strings out of 493312
+ 53478 string characters out of 3138899
+ 130131 words of memory out of 3000000
+ 7292 multiletter control sequences out of 15000+200000
+ 10937 words of font info for 43 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 41i,6n,26p,629b,199s stack positions out of 5000i,500n,10000p,200000b,50000s
-<C:/Program Files/MiKTeX 2.9/
-fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
-pe1/public/amsfonts/cmextra/cmex8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/
-public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
-msfonts/cm/cmmi6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/c
-m/cmmi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.p
-fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Pr
-ogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr17.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Program Files/MiKTeX 
-2.9/fonts/type1/public/amsfonts/cm/cmsy6.pfb>
-Output written on proposal.pdf (2 pages, 756108 bytes).
+ 41i,6n,26p,790b,197s stack positions out of 5000i,500n,10000p,200000b,50000s
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm
+/cmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cmextra/cm
+ex7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb>
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Progr
+am Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Program Files/
+MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.
+9/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/t
+ype1/public/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publ
+ic/amsfonts/cm/cmr5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfont
+s/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy5
+.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti10.pfb>
+Output written on proposal.pdf (3 pages, 144830 bytes).
 PDF statistics:
- 51 PDF objects out of 1000 (max. 8388607)
+ 60 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
