@@ -1,19 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Mar  9 17:08:19 2018
-
-@author: forresthooton
-"""
 
 import json
 import csv
 
+def caption_file(valCaptionsJson):
+    with open("/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/train_annotations.csv", 'w') as csvfile:
+        
+        fieldnames = ['image_id', 'id', 'caption']
+        
+        writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
+        
+        writer.writeheader()
+        
+        for row in valCaptionsJson['annotations']:
+        
+            writer.writerow(row)
 
+
+def image_data_file(valCaptionsJson):
+    
+    with open("/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/val_image_data.csv", 'w') as csvfile:
+        
+        fieldnames = ['license', 'file_name', 'coco_url', 'height', 'width', 'date_captured', 'flickr_url', 'id']
+        
+        writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
+        
+        writer.writeheader()
+        
+        for row in valCaptionsJson['images']:
+        
+            writer.writerow(row)
+    
 
 def main():
     
-    with open("/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/annotations_trainval2014/captions_train2014.json",'r') as f:
+    with open("/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/annotations_trainval2014/captions_val2014.json",'r') as f:
         valCaptionsJson = json.load(f)
     
     
@@ -54,19 +76,9 @@ def main():
     
     """
     
-    with open("/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/train_annotations.csv", 'w') as csvfile:
-        
-        fieldnames = ['image_id', 'id', 'caption']
-        
-        writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
-        
-        writer.writeheader()
-        
-        for row in valCaptionsJson['annotations']:
-        
-            writer.writerow(row)
-      
-            
+    # caption_file(valCaptionsJson)
+    
+    # simage_data_file(valCaptionsJson)
 
 
 if __name__ == "__main__":
