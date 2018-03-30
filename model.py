@@ -7,36 +7,13 @@ import matplotlib as plt
 import config
 from time import time
 
-
-def example_weight_initialization():
-    
-    n_features = X_values.shape[1]
-    n_classes = len(set(y_flat))
-    weights_shape = (n_features, n_classes)
-    
-    W = tf.Variable(dtype=tf.float32, initial_value=tf.random_normal(weights_shape))  # Weights of the model
-
-
-
-# Helper function to simply run a variable
-def run_variable(variable):
-    
-    tf.initialize_all_variables()
-    
-    with tf.Session() as sess:
-        
-        return sess.run(variable)
-
-
-
-def cnn():
+def cnn(image):
     
     # Include these with statements to understand tensorboard better
     with tf.name_scope("CNN"):
 
         with tf.name_scope("Input_layer"):
             
-            # Below is an example from other code
             image = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH], name = "image_input")
             
             # Flattens image to transform into input layer
@@ -73,11 +50,16 @@ def cnn():
         
         return output_layer
 
+
 # Goal of model() is to initialize all the variables we will need in training, thus initializing the structure
 # Then, wherever the variables go, goal is to minimize loss over some sort of optimization, like the Adam optimizer
 def model():
     
-    cnn_output = tf.get_variable(cnn(), name = "CNN_output")
+    image = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH], name = "image_input")
+    cnn_output = tf.get_variable(cnn(image), name = "CNN_output")
+    
+    sentence = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
+    mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
     
     with tf.name_scope("lstm"):
             
@@ -86,8 +68,9 @@ def model():
         
         with tf.name_scope("word_embedding"):
             
+            # Creats matrix the size of the number of possible words to map the probability weights
             embedding_matrix = tf.get_variable(
-                    shape = [config.NUM_TOKENS, config.DIM_EMBEDDING],
+                    shape = [config.NUM_TOKENS, config.DIM_EMBEDDING],  # DIM_EMBEDDING should be the same size as the max length, as the diminsions reperesent the probability the word apprears in that part of the sequence
                     name = 'embedding_weights')
             
             embedded_word = tf.nn.embedding_loopup(embedding_matrix, last_word)
@@ -107,7 +90,11 @@ def model():
             current_input = tf.concat([cnn_output, embedded_word], 1)
     
             
-    output, state = lstm(current_input, state)
+            # Needs to be inside loop
+            output, state = lstm(current_input, state)
+            
+            # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
+            tf.get_variable_scope().reuse_variales()
 
 # This is what it we'll use to actually train the model, wether in a different train function or train file
 def main():
