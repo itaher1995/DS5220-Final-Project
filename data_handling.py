@@ -13,13 +13,13 @@ import fnmatch
 import os
 
 
-def image_data_subset(filetype, perc = .1):
+def image_data_subset(filetype):
     
     filename = "/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/" + filetype + "_image_data.csv"
     data = pd.read_csv(filename)
     
     # Sets the number of images we want to train based off a percent of the total number
-    numImages = round(data.shape[0] * perc)
+    numImages = round(data.shape[0] * SUBSET_PERCENT)
     
     # Gets random DataFrame subset where the number of rows is numImages
     data = data.loc[np.random.choice(data.index,numImages,False)].reset_index(drop=True).copy()
@@ -90,7 +90,6 @@ def reorganize_data_tables():
     # The values in the annotations column are dictionaries, where the key is the 'caption_id'
     # and the value is the 'caption'. This means that each row of the new table contains all the
     # annotations for an image
-    
     trainSubset = attach_annotations(trainSubset.copy(), trainAnnSubset.copy())
     valSubset = attach_annotations(valSubset.copy(), valAnnSubset.copy())
     
@@ -114,7 +113,6 @@ def resize_images():
     print(image_filenames)
     
     
-    
     for f in image_filenames:
         
         filepath = os.path.join(data_directory, f)
@@ -128,9 +126,11 @@ def resize_images():
         
         result = transform.resize(image, (config.IMG_HEIGHT, config.IMG_WIDTH))
         
+        print(result.ndim)
+        
         plt.imshow(result)
         
-        plt.imsave(outpath, result)
+        #plt.imsave(outpath, result)
         
         plt.imshow(data.imread(outpath))
     
@@ -140,25 +140,85 @@ def resize_images():
 def tokenize_captions():
     
     data = pd.read_pickle("train_data.pkl")
+    
     captions = []
+    max_len = 0
     
     # Append all captions to one list
     for idx, row in data.iterrows():
         for key, value in row['annotations'].items():
             
-            captions.append(value)
+            if len(value.split()) > max_len:
+                max_len = len(value.split())
+            
+            captions.append(value.lower().strip('.'))  # Why doesn't this strip all '.'s??
+            #print(value.lower().strip('.;'))
+    
     
     joined_cap = " ".join(captions) # Join all captions into one string
     
-    tokenized_cap = joined_cap.lower().rstrip('.').split()  # Split words individually
+    tokenized_cap = joined_cap.split()  # Split words individually
     
-    unique_tokens = list(set(tokenized_cap))    # Removes duplicates leaving tokens
+    unique_tokens = sorted(list(set(tokenized_cap)))   # Removes duplicates leaving tokens
     
+    print("Maximum Caption Length:", max_len)
     
+    idx_to_word = {}
+    for i in range(len(unique_tokens)):
+        idx_to_word[i+1] = unique_tokens[i]
     
-    with open('tokens.pkl', 'wb') as f:
-        pickle.dump(unique_tokens, f)
+    word_to_idx = {word: idx for idx, word in idx_to_word.items()}
+
+    #print(idx_to_word)
+    #print(word_to_idx)
+
     
+    # Writes the tokens to token file with index
+    with open('idx_to_word.pkl', 'wb') as f:
+        pickle.dump(idx_to_word, f)
+    with open('word_to_idx.pkl', 'wb') as f:
+        pickle.dump(word_to_idx, f)
+
+def token_indexed_captions(filename):
+    
+    data = pd.read_pickle(filename)
+
+    word_to_idx = pd.read_pickle("word_to_idx.pkl")
+    
+    idx_caption_matrix = []
+    
+    idx_caption_matrix = pd.DataFrame()
+    
+    for idx, row in data.iterrows():
+        
+        matrix = []
+        
+        for key, value in row['annotations'].items():
+            
+            annotation = value.lower().strip('.').split()  # converts row to list of indexes
+            
+            # The if statement will have a big influence on what happens if we get a word we haven't seen before in validation or test
+            idx_annotation = [word_to_idx[word] for word in annotation if word in word_to_idx]   
+            
+            matrix.append(idx_annotation)
+            
+        entry = pd.Series()
+        
+        entry['image_id'] = row['image_id']
+        
+        entry['idx_caption_matrix'] = matrix
+            
+        # Adds column into df
+        idx_caption_matrix = pd.concat([idx_caption_matrix, entry], 1)
+    
+    idx_caption_matrix = idx_caption_matrix.T
+        
+    data = data.merge(idx_caption_matrix, on = 'image_id', how = 'left')
+    
+    data.to_pickle(filename)
+
+
+
     
 def main():
     
@@ -166,7 +226,11 @@ def main():
     
     #resize_images()
     
-    tokenize_captions()
+    #tokenize_captions()
+    
+    token_indexed_captions("train_data.pkl")
+    token_indexed_captions("val_data.pkl")
+    
     
     
     
