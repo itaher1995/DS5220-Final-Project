@@ -5,8 +5,10 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import config
+import pandas as pd
 from skimage import data
 from time import time
+from keras.preprocessing import sequence
 
 
 # Borrowed from: https://github.com/jazzsaxmafia/show_attend_and_tell.tensorflow/blob/master/model_tensorflow.py
@@ -78,13 +80,20 @@ def lstm_to_word_output(embedded_words, hidden_state, cnn_output, L_0, L_h, L_z)
 # Then, wherever the variables go, goal is to minimize loss over some sort of optimization, like the Adam optimizer
 def train_model():
     
+    # Tensor to return and demonstrate program works
+    tester = tf.constant("it works")
+    
     # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
-    image = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH], name = "image_input")
-    sentences = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
-    mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
+    image = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
+    caption = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 1], name = "input_captions")
+    
+    # To include later if we want to help training
+    # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
     
     # Creates the actual info from the cnn to be included into the model
-    cnn_output = tf.get_variable(cnn(image), name = "CNN_output")
+    cnn_output = cnn(image)
+    
+    return cnn_output, image, caption
     
     with tf.name_scope("lstm"):
         
@@ -151,34 +160,53 @@ def train_model():
 # This is what it we'll use to actually train the model, wether in a different train function or train file
 def main():
     
-    filepaths = ["train2014_normalized/COCO_train2014_000000103817.jpg", "train2014_normalized/COCO_train2014_000000200386.jpg"]
+    # reads in necessary image data
+    img_data = pd.read_pickle("train_data.pkl")
+    
+    # Just gets a couple images and captions for testing right now
+    image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+    print(image_filenames)
+    
+    data_directory = "train2014_normalized"
     
     images = []
+    captions = []
     
-    for file in filepaths:
+    for f in image_filenames:
         
-        images.append(data.imread(file))
+        filepath = os.path.join(data_directory, f)
+        
+        images.append(data.imread(filepath))
+        
+        cap_row = img_data[img_data['file_name'] == f].copy()
+        
+        # Note that annotations is a pd.Series()
+        idx_captions = cap_row['idx_caption_matrix'].item()        
+        
+        # really only want one annotation per image for testing
+        for sentance in idx_captions:
+            captions.append(sentance)
+            break
+        
+    print(captions)
+    print(len(images))
     
-    #print(images[0].ndim)
-    
-    #plt.imshow(image)
-    
-    image = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
-    
-    img_output = cnn(image)
+    model, image, caption = train_model()
     
     with tf.Session() as sess:
         
         sess.run(tf.global_variables_initializer())
         
-        feed_dict = {image: images}
+        # Need to pad captions
+        captions = sequence.pad_sequences(captions, padding='post', maxlen=config.MAX_CAP_LEN+1)
         
-        result = sess.run(img_output, feed_dict = feed_dict)
+        feed_dict = {image: images,
+                     caption: captions}
+        
+        result = sess.run(model, feed_dict = feed_dict)
         
         # each result is a result per image
-        print(result[0])
-        print(result[1])
-        print(len(result))
+        print(result)
     
     
     
