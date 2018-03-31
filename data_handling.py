@@ -19,7 +19,7 @@ def image_data_subset(filetype):
     data = pd.read_csv(filename)
     
     # Sets the number of images we want to train based off a percent of the total number
-    numImages = round(data.shape[0] * SUBSET_PERCENT)
+    numImages = round(data.shape[0] * config.SUBSET_PERCENT)
     
     # Gets random DataFrame subset where the number of rows is numImages
     data = data.loc[np.random.choice(data.index,numImages,False)].reset_index(drop=True).copy()
@@ -93,6 +93,9 @@ def reorganize_data_tables():
     trainSubset = attach_annotations(trainSubset.copy(), trainAnnSubset.copy())
     valSubset = attach_annotations(valSubset.copy(), valAnnSubset.copy())
     
+    trainSubset = token_indexed_captions(trainSubset)
+    valSubset = token_indexed_captions(valSubset)
+    
     trainSubset.to_pickle("train_data.pkl")
     valSubset.to_pickle("val_data.pkl")
 
@@ -130,11 +133,16 @@ def resize_images():
         
         plt.imshow(result)
         
-        #plt.imsave(outpath, result)
+        plt.imsave(outpath, result)
         
         plt.imshow(data.imread(outpath))
     
     print("Standardization DONE IN", round(time() - start), "SEC")
+
+def clean_string(string):
+    string = string.lower().strip('.')
+    
+    return string
 
 
 def tokenize_captions():
@@ -151,7 +159,7 @@ def tokenize_captions():
             if len(value.split()) > max_len:
                 max_len = len(value.split())
             
-            captions.append(value.lower().strip('.'))  # Why doesn't this strip all '.'s??
+            captions.append(clean_string(value))  # Why doesn't this strip all '.'s??
             #print(value.lower().strip('.;'))
     
     
@@ -179,9 +187,7 @@ def tokenize_captions():
     with open('word_to_idx.pkl', 'wb') as f:
         pickle.dump(word_to_idx, f)
 
-def token_indexed_captions(filename):
-    
-    data = pd.read_pickle(filename)
+def token_indexed_captions(data):
 
     word_to_idx = pd.read_pickle("word_to_idx.pkl")
     
@@ -195,7 +201,7 @@ def token_indexed_captions(filename):
         
         for key, value in row['annotations'].items():
             
-            annotation = value.lower().strip('.').split()  # converts row to list of indexes
+            annotation = clean_string(value).split()  # converts row to list of indexes
             
             # The if statement will have a big influence on what happens if we get a word we haven't seen before in validation or test
             idx_annotation = [word_to_idx[word] for word in annotation if word in word_to_idx]   
@@ -215,21 +221,19 @@ def token_indexed_captions(filename):
         
     data = data.merge(idx_caption_matrix, on = 'image_id', how = 'left')
     
-    data.to_pickle(filename)
+    return data
 
 
 
     
 def main():
     
-    #reorganize_data_tables()
+    reorganize_data_tables()
     
-    #resize_images()
+    resize_images()
     
     #tokenize_captions()
     
-    token_indexed_captions("train_data.pkl")
-    token_indexed_captions("val_data.pkl")
     
     
     
