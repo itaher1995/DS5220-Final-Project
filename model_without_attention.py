@@ -43,34 +43,7 @@ def cnn(image):
             
             logits = tf.contrib.layers.fully_connected(input_layer, config.NUM_CNN_OUTPUTS, tf.nn.relu)
             
-            """
-            # Examples
-            conv1 = tf.layers.conv2d(
-                    inputs=input_layer, 
-                    filters=32,
-                    kernel_size=[5, 5],
-                    padding="same", 
-                    activation=tf.nn.relu,
-                    name = "conv1")
-            
-            pool1 = tf.layers.max_pooling2d(
-                    inputs=conv1,
-                    pool_size=[2,2],
-                    strides=2,
-                    name = "pool1")
-            """
-            
         with tf.name_scope("Output_layer"):
-            """
-            # Or whatever kind of layer we want to output
-            output_layer = tf.layers.conv2d(
-                    inputs= pool1, # or whatever last layer before output
-                    filters=32,
-                    kernel_size=[2, 2],
-                    padding="same", 
-                    activation=tf.nn.relu,
-                    name = "output_layer")
-            """
             
             output_layer = logits
         
@@ -132,10 +105,22 @@ def train_model():
                     name = 'embedding_weights')
         
         predicted_caption = []
+        loss = 0
 
         # For training, need to loop through all the of possible positions
         for i in range(config.MAX_CAP_LEN):
             
+            """
+            Paused at creating onehot labels. Need to successfully create labels, then make sure it works correctly with
+            the cross_entropy
+            """
+
+            # Taken straight from code in other program, might need to change up
+            labels = tf.expand_dims(captions[:,i], 1)
+            indices = tf.expand_dims(tf.range(0, config.BATCH_SIZE, 1), 1)
+            concated = tf.concat(1, [indices, labels])
+            onehot_labels = tf.sparse_to_dense( concated, tf.pack([config.BATCH_SIZE, config.NUM_TOKENS]), 1.0, 0.0)
+
             if i != 0:
                 with tf.name_scope("word_embedding"):
                     # Can't be run on a gpu for some reason
@@ -152,13 +137,15 @@ def train_model():
 
             p_t = tf.nn.softmax(m_t)
 
-            print(m_t.shape)
-            print(p_t.shape)
+            # Calculates the loss for the training
+            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logit_words, onehot_labels)
+            current_loss = tf.reduce_sum(cross_entropy)
+            loss = loss + current_loss
 
-            return p_t, images, captions
+            predicted_word = tf.argmax(p_t, 1)
 
             predicted_caption.append(predicted_word)
-            
+
             current_input = captions[:, i-1]
             prior_state = state
             prior_output = output
@@ -167,7 +154,7 @@ def train_model():
             # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
             tf.get_variable_scope().reuse_variables()
         
-        return predicted_caption, images, captions
+        return loss, images, captions
     
     
     
@@ -206,7 +193,9 @@ def main():
     print(caption_data)
     print(len(image_data))
 
-    model, images, captions = train_model()
+    loss, images, captions = train_model()
+
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
     
     with tf.Session() as sess:
         
@@ -218,10 +207,10 @@ def main():
         feed_dict = {images: image_data,
                      captions: caption_data}
         
-        result = sess.run(model, feed_dict = feed_dict)
+        _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
         
         # each result is a result per image
-        print(result)
+        print(loss_result)
     
     
     
