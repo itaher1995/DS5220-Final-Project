@@ -161,7 +161,7 @@ class ImageCaptionGenerator():
         
         return normFullConnected
     
-    def __IMAGEENCODER__(self,X_train,filterSize,numFilters,fcSize,strides,k):
+    def __IMAGEENCODER__(self,X_train,numInputChannels,filterSize,numFilters,fcSize,strides,k):
         '''
         Function to build the Image Encoding (CNN) step of the image-caption
         generation. It essentially will use an input set of images and develop
@@ -171,7 +171,7 @@ class ImageCaptionGenerator():
         '''
         
         #input layer 
-        layer1, weights = self.__CREATECNNCHUNK__(X_train,3,filterSize,numFilters,strides,k)
+        layer1, weights = self.__CREATECNNCHUNK__(X_train,numInputChannels,filterSize,numFilters,strides,k)
         layer2, numFeatures = self.__FLATTEN__(layer1)
         outputEncoded = self.__FULLYCONNECTED__(layer2,numFeatures,fcSize)
         
@@ -191,7 +191,7 @@ class ImageCaptionGenerator():
         x = tf.reshape(x, shape=[-1, config.IMG_SIZE, config.IMG_SIZE, 4])
         #placeholder for caption will go here
         
-        cnnOutput = self.__IMAGEENCODER__(x,filterSize,numFilters,fcSize,strides,k)
+        cnnOutput = self.__IMAGEENCODER__(x,filterSize,self.numChannels,numFilters,fcSize,strides,k)
             
         return cnnOutput, x
 
@@ -200,32 +200,21 @@ def main():
     
     # Just gets a couple images and captions for testing right now
     image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
-    print(image_filenames)
-    
-    data_directory = "train2014_normalized"
-    
-    image_data = []
-    
-    for f in image_filenames:
-        
-        filepath = os.path.join(data_directory, f)
-        
-        image_data.append(data.imread(filepath))
-    
+    print(image_filenames)    
+    data_directory = "train2014_normalized"    
+    image_data = []    
+    for f in image_filenames:        
+        filepath = os.path.join(data_directory, f)       
+        image_data.append(data.imread(filepath))   
     print(len(image_data))
-
-    
+   
     model = ImageCaptionGenerator()
-    cnnOutput, x = model.train(3,5,128,1,2)
+    cnnOutput, x = model.train(4,5,128,1,2)
 
     with tf.Session() as sess:
-        
         sess.run(tf.global_variables_initializer())
-
         feed_dict = {x: image_data}
-
         result = sess.run(cnnOutput, feed_dict = feed_dict)
-
         print(result)
     
 
