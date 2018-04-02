@@ -48,7 +48,7 @@ def cnn(image):
             output_layer = logits
         
         return tf.reshape(output_layer, shape = [config.BATCH_SIZE, config.NUM_CNN_OUTPUTS])
-
+"""
 def lstm_to_word_output(embedded_words, hidden_state, cnn_output, L_0, L_h, L_z):                                          
     
     mult1 = tf.matmul(L_h, hidden_state)
@@ -59,193 +59,319 @@ def lstm_to_word_output(embedded_words, hidden_state, cnn_output, L_0, L_h, L_z)
     word = tf.exp(exponent)
     
     return word
+"""
+class ImageCaptionGenerator():
+    
+    def __init__(self):
+        hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
+        current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_current_state")
 
 
-
-# Goal of model() is to initialize all the variables we will need in training, thus initializing the structure
-# Then, wherever the variables go, goal is to minimize loss over some sort of optimization, like the Adam optimizer
-def train_model():
-    
-    # Tensor to return and demonstrate program works
-    #tester = tf.constant("it works")
-    
-    # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
-    images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
-    captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN], name = "input_captions")
-    
-    # To include later if we want to help training
-    # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
-    
-    # Creates the actual info from the cnn to be included into the model
-    cnn_output = cnn(images)
-    
-    with tf.name_scope("lstm"):
+    # Goal of model() is to initialize all the variables we will need in training, thus initializing the structure
+    # Then, wherever the variables go, goal is to minimize loss over some sort of optimization, like the Adam optimizer
+    def train_model():
         
-        with tf.name_scope("initialize"):
+        # Tensor to return and demonstrate program works
+        #tester = tf.constant("it works")
         
-            # Initialize lstm cell
-            lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
-
-            prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
-
-            # Initialize input
-            current_input = cnn_output
-
-            # The hidden state corresponds the the cnn inputs
-            initial_hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
-            initial_current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
-            # Needed to start model
-            prior_state = initial_hidden_state, initial_current_state
-            
-        with tf.name_scope("word_embedding"):
-            
-            # Creats matrix the size of the number of possible words to map the probability weights
-            embedding_matrix = tf.get_variable(
-                    shape = [config.NUM_TOKENS, config.DIM_EMBEDDING],  # DIM_EMBEDDING should be the same size as the max length, as the diminsions reperesent the probability the word apprears in that part of the sequence
-                    name = 'embedding_weights')
+        # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
+        images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
+        captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN], name = "input_captions")
         
-        predicted_caption = []
-        loss = 0
-
-        # For training, need to loop through all the of possible positions
-        for i in range(config.MAX_CAP_LEN):
-            
-            """
-            Paused at creating onehot labels. Need to successfully create labels, then make sure it works correctly with
-            the cross_entropy
-            """
-
-            # Taken straight from code in other program, might need to change up
-            labels = tf.expand_dims(captions[:,i], 1)
-            indices = tf.expand_dims(tf.range(0, config.BATCH_SIZE, 1), 1)
-            concated = tf.concat(1, [indices, labels])
-            onehot_labels = tf.sparse_to_dense( concated, tf.pack([config.BATCH_SIZE, config.NUM_TOKENS]), 1.0, 0.0)
-
-            if i != 0:
-                with tf.name_scope("word_embedding"):
-                    # Can't be run on a gpu for some reason
-                    with tf.device("/cpu:0"):
-                        # Need to somehow account for prior words since we're doing a sequence to word model
-                        embedded_word = tf.nn.embedding_lookup(embedding_matrix, prior_word)
-    
-            # This line executes the actual gates of lstm to update values
-            output, state = lstm(current_input, prior_state)
-
-            _, current_state = state
-            
-            m_t = tf.multiply(output, current_state)
-
-            p_t = tf.nn.softmax(m_t)
-
-            # Calculates the loss for the training
-            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logit_words, onehot_labels)
-            current_loss = tf.reduce_sum(cross_entropy)
-            loss = loss + current_loss
-
-            predicted_word = tf.argmax(p_t, 1)
-
-            predicted_caption.append(predicted_word)
-
-            current_input = captions[:, i-1]
-            prior_state = state
-            prior_output = output
-            
-            
-            # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
-            tf.get_variable_scope().reuse_variables()
+        # To include later if we want to help training
+        # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
         
+        # Creates the actual info from the cnn to be included into the model
+        cnn_output = cnn(images)
+        
+        with tf.name_scope("lstm"):
+            with tf.variable_scope(tf.get_variable_scope()) as scope:
+
+                with tf.variable_scope("initialize"):
+                
+                    # Initialize lstm cell
+                    lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
+
+                    # BATCH_SIZE x _
+                    prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
+                    print("Prior word:", prior_word.shape)
+
+                    # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
+                    current_input = cnn_output
+                    print("Current_input", current_input.shape)
+
+                    # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
+                    initial_hidden_state = self.hidden_state
+                    initial_current_state = self.current_state
+
+                    # Needed to start model, tuple of vectors
+                    prior_state = initial_hidden_state, initial_current_state
+                    #prior_state = m.initial_state.eval()
+
+                    
+                with tf.variable_scope("word_embedding"):
+                    # Creats matrix the size of the number of possible words to map the probability weights
+                    embedding_matrix = tf.get_variable(
+                            shape = [config.NUM_TOKENS, config.DIM_EMBEDDING],  # DIM_EMBEDDING should be the same size as the max length, as the diminsions reperesent the probability the word apprears in that part of the sequence
+                            name = 'embedding_weights')
+                
+                predicted_caption = []
+                loss = 0
+
+                #with tf.variable_scope(tf.get_variable_scope()) as scope:
+                # For training, need to loop through all the of possible positions
+                for i in range(config.MAX_CAP_LEN):
+                    
+                    # Create onehot vector, or vector of entire dictionary where the word in sentance is labeled 1
+                    labels = captions[:,i]
+                    # BATCH_SIZE x NUM_TOKENS matrix
+                    onehot_labels = tf.one_hot(labels, config.NUM_TOKENS,
+                                               on_value = 1, off_value = 0,
+                                               name = "onehot_labels")
+                    print("onehot:", onehot_labels.shape)
+
+                    if i != 0:
+                        with tf.variable_scope("word_embedding"):
+                            # Can't be run on a gpu for some reason
+                            with tf.device("/cpu:0"):
+                                # Accounts for the one_hot vector
+                                # BATCH_SIZE x NUM_TOKENS matrix
+                                prior_word_probs = tf.nn.embedding_lookup(embedding_matrix, prior_word)
+                            current_input = tf.multiply(prior_word_probs, tf.cast(onehot_labels, tf.float32))
+                    
+                    with tf.variable_scope("lstm_function"):
+                        # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
+                        output, state = lstm(current_input, prior_state)
+
+                        _, current_state = state
+                    
+                    with tf.variable_scope("lstm_output"):
+                        # BATCH_SIZE x NUM_LSTM_UNITS
+                        m_t = tf.multiply(output, current_state)
+
+                        #logits = 
+
+                        # BATCH_SIZE x NUM_LSTM_UNITS
+                        p_t = tf.nn.softmax(m_t, name = "word_probabilities")
+
+                    # Calculates the loss for the training, performs it in a slightly different manner than paper
+                    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
+                    current_loss = tf.reduce_sum(cross_entropy)
+                    loss = loss + current_loss
+                    print("Loop", i, "Loss", loss)
+
+                    predicted_word = tf.argmax(p_t, 1)
+
+                    predicted_caption.append(predicted_word)
+
+                    prior_word = captions[:, i-1]
+                    prior_state = state
+                    prior_output = output
+                    
+                    # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
+                    tf.get_variable_scope().reuse_variables()
+        
+        hidden_state, current_state = prior_state
+        self.hidden_state = hidden_state
+        self.current_state = current_state
+
         return loss, images, captions
-    
-    
-    
-    
-# This is what it we'll use to actually train the model, wether in a different train function or train file
-def main():
-    
-    # reads in necessary image data
-    img_data = pd.read_pickle("train_data.pkl")
-    
-    # Just gets a couple images and captions for testing right now
-    image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
-    print(image_filenames)
-    
-    data_directory = "train2014_normalized"
-    
-    image_data = []
-    caption_data = []
-    
-    for f in image_filenames:
-        
-        filepath = os.path.join(data_directory, f)
-        
-        image_data.append(data.imread(filepath))
-        
-        cap_row = img_data[img_data['file_name'] == f].copy()
-        
-        # Note that annotations is a pd.Series()
-        idx_captions = cap_row['idx_caption_matrix'].item()        
-        
-        # really only want one annotation per image for testing
-        for sentance in idx_captions:
-            caption_data.append(sentance)
-            break
-        
-    print(caption_data)
-    print(len(image_data))
 
-    loss, images, captions = train_model()
 
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
-    
-    with tf.Session() as sess:
+        def use_model():
+            # Tensor to return and demonstrate program works
+            #tester = tf.constant("it works")
+            
+            # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
+            images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
+
+            # Creates the actual info from the cnn to be included into the model
+            cnn_output = cnn(images)
+            
+            with tf.name_scope("lstm"):
+                with tf.variable_scope(tf.get_variable_scope()) as scope:
+
+                    with tf.variable_scope("initialize"):
+                    
+                        # Initialize lstm cell
+                        lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
+
+                        # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
+                        current_input = cnn_output
+
+                        # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
+                        initial_hidden_state = self.hidden_state
+                        initial_current_state = self.current_state
+
+                        # Needed to start model, tuple of vectors
+                        prior_state = initial_hidden_state, initial_current_state
+                        #prior_state = m.initial_state.eval()
+                    
+                    predicted_caption = []
+
+                    # For training, need to loop through all the of possible positions
+                    for i in range(config.MAX_CAP_LEN):
+                        
+                        if i != 0:
+                            with tf.variable_scope("word_embedding"):
+                                # Can't be run on a gpu for some reason
+                                with tf.device("/cpu:0"):
+                                    # Accounts for the one_hot vector
+                                    # BATCH_SIZE x NUM_TOKENS matrix
+                                    prior_word_probs = tf.nn.embedding_lookup(embedding_matrix, prior_word)
+                                current_input = tf.multiply(prior_word_probs, tf.cast(onehot_labels, tf.float32))
+                        
+                        with tf.variable_scope("lstm_function"):
+                            # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
+                            output, state = lstm(current_input, prior_state)
+
+                            _, current_state = state
+                        
+                        with tf.variable_scope("lstm_output"):
+                            # BATCH_SIZE x NUM_LSTM_UNITS
+                            m_t = tf.multiply(output, current_state)
+
+                            # BATCH_SIZE x NUM_LSTM_UNITS
+                            p_t = tf.nn.softmax(m_t, name = "word_probabilities")
+
+                        predicted_word = tf.argmax(p_t, 1)
+
+                        predicted_caption.append(predicted_word)
+
+                        prior_word = predicted_word
+                        prior_state = state
+                        prior_output = output
+                        
+                        # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
+                        tf.get_variable_scope().reuse_variables()
+
+            return generated_captions, images, captions
         
-        sess.run(tf.global_variables_initializer())
         
-        # Need to pad captions
-        caption_data = string_padder(caption_data)
+    # This is what it we'll use to actually train the model, wether in a different train function or train file
+    def train():
         
-        feed_dict = {images: image_data,
-                     captions: caption_data}
+        # reads in necessary image data
+        img_data = pd.read_pickle("train_data.pkl")
         
-        _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
+        # Just gets a couple images and captions for testing right now
+        image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+        print(image_filenames)
         
-        # each result is a result per image
-        print(loss_result)
-    
-    
-    
-    
-    
-    """
-    if not os.path.exists(config.SUMMARY_DIRECTORY):
-            os.mkdir(config.SUMMARY_DIRECTORY)
-    
-    
-    with tf.Session() as sess:
+        data_directory = "train2014_normalized"
         
+        image_data = []
+        caption_data = []
+        
+        for f in image_filenames:
+            
+            filepath = os.path.join(data_directory, f)
+            
+            image_data.append(data.imread(filepath))
+            
+            cap_row = img_data[img_data['file_name'] == f].copy()
+            
+            # Note that annotations is a pd.Series()
+            idx_captions = cap_row['idx_caption_matrix'].item()        
+            
+            # really only want one annotation per image for testing
+            for sentance in idx_captions:
+                caption_data.append(sentance)
+                break
+            
+        print(caption_data)
+        print(len(image_data))
+
+        # Allows us to save training sessions
+        if not os.path.exists(config.SUMMARY_DIRECTORY):
+                os.mkdir(config.SUMMARY_DIRECTORY)
+
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
-                                            sess.graph)
-        
-        # Space to build model and other variables like optimizer
-        
-        
-        # Need to initialize all varialbes after they are declared
-        sess.run(tf.global_variables_initializer())
-        
-        for _ in epoch:
-            for _ in batch:
+                                                sess.graph)
+
+        loss, images, captions = train_model()
+
+        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(self.loss)
+
+        # This is where the number of epochs for the LSTM are controlled
+        for i in range(config.NUM_LSTM_EPOCHS):
+            with tf.Session() as sess:
                 
+                sess.run(tf.global_variables_initializer())
                 
+                # Need to pad captions
+                caption_data = string_padder(caption_data)
                 
-                feed_dict = 
-    
-    
-    
-    
-    
+                feed_dict = {images: image_data,
+                             captions: caption_data}
+                             #m.initial_state = initial_state}
+                
+                _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
+                
+                # each result is a result per image
+                print(loss_result)
+        
         summ_writer.close()
-    """
-    
+        
+    def test():
+
+        # reads in necessary image data
+        img_data = pd.read_pickle("train_data.pkl")
+        
+        # Just gets a couple images and captions for testing right now
+        image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+        print(image_filenames)
+        
+        data_directory = "train2014_normalized"
+        
+        image_data = []
+        caption_data = []
+        
+        for f in image_filenames:
+            
+            filepath = os.path.join(data_directory, f)
+            
+            image_data.append(data.imread(filepath))
+            
+            cap_row = img_data[img_data['file_name'] == f].copy()
+            
+            # Note that annotations is a pd.Series()
+            idx_captions = cap_row['idx_caption_matrix'].item()        
+            
+            # really only want one annotation per image for testing
+            for sentance in idx_captions:
+                caption_data.append(sentance)
+                break
+        
+        print(caption_data)
+        print(len(image_data))
+
+        generated_captions, images, captions = use_model()
+
+        with tf.Session() as sess:
+            
+            model = tf.train.Saver()
+            model.restore(sess, config.MODEL_PATH)
+
+            sess.run(tf.global_variables_initializer())
+            
+            # Need to pad captions
+            caption_data = string_padder(caption_data)
+            
+            feed_dict = {images: image_data,
+                         initial_hidden_state: self.hidden_state
+                         initial_current_state: self.current_state}
+                         #m.initial_state = initial_state}
+            
+            result = sess.run(generated_captions, feed_dict = feed_dict)
+            
+            # each result is a result per image
+            print(result)
+        
+
+def main():
+    model = ImageCaptionGenerator()
+    model.test()
 
 if __name__ == "__main__":
     main()
