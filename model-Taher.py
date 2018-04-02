@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import config
 from skimage import data
 from time import time
+import pickle
+import os
+from PIL import Image
 
 class ImageCaptionGenerator():
     '''
@@ -37,6 +40,8 @@ class ImageCaptionGenerator():
         self.flattenDim = config.IMG_SIZE * config.IMG_SIZE
         self.imageShape = (config.IMG_SIZE, config.IMG_SIZE)
         self.numChannels = 3
+
+
     
     def __INITIALIZEWEIGHTS__(self,shape):
         '''
@@ -57,12 +62,14 @@ class ImageCaptionGenerator():
         
         INPUT: length (a tensor that is the length of the number of filters)
         '''
-        tf.Variable(tf.constant(0.05, shape=[length]))
+        return tf.Variable(tf.constant(0.05, shape=[length]))
     
     def __CREATECNNCHUNK__(self,inputLayer,
                           numInputChannels,
                           filterSize,
-                          numFilters):
+                          numFilters,
+                          strides,
+                          k):
         '''
         Takes in inputs regarding the previous layer, the number of channels,
         the size and number of the filters for convolution and creates a chunk
@@ -86,20 +93,21 @@ class ImageCaptionGenerator():
         #padding= 'SAME' essentially means that the layer with pad a layer
         #of 0s such that it will be equal in dimensions (though I think
         #we handle this already.)
-        convolution = tf.nn.conv2d(input=self.inputLayer,
+        convolution = tf.nn.conv2d(input=inputLayer,
                              filter=weights,
-                             strides=[1, 1, 1, 1],
+                             strides=[1, strides, strides, 1],
                              padding='SAME')
-        
         #add biases to the result of the convolution
-        convolution += biases
+        convolution = tf.nn.bias_add(convolution, biases)
+        
+        convolutionWReLU = tf.nn.relu(convolution)
         
         #max pooling
         #We compute max pooling so that we can find the most "relevant" features
         #of our images.
-        maxPooling = tf.nn.max_pool(value=convolution,
-                               ksize=[1, 2, 2, 1],
-                               strides=[1, 2, 2, 1],
+        maxPooling = tf.nn.max_pool(value=convolutionWReLU,
+                               ksize=[1, k, k, 1],
+                               strides=[1, k, k, 1],
                                padding='SAME')
         
         #normalization with ReLU, this is to remove any negative values
@@ -148,12 +156,11 @@ class ImageCaptionGenerator():
         fullyConnected = tf.matmul(inputLayer,weights) + biases
         
         #normalize fully connected layer
-        
         normFullConnected = tf.nn.relu(fullyConnected)
         
         return normFullConnected
     
-    def __IMAGEENCODER__(self,X_train,):
+    def __IMAGEENCODER__(self,X_train,filterSize,numFilters,fcSize,strides,k):
         '''
         Function to build the Image Encoding (CNN) step of the image-caption
         generation. It essentially will use an input set of images and develop
@@ -161,9 +168,48 @@ class ImageCaptionGenerator():
         layer. This fully connected layer will then be the input to our image
         decoder (RNN).
         '''
-        return "This section is not completed yet - IT."
+        
+        #input layer 
+        layer1, weights = self.__CREATECNNCHUNK__(X_train,3,filterSize,numFilters,strides,k)
+        layer2, numFeatures = self.__FLATTEN__(layer1)
+        outputEncoded = self.__FULLYCONNECTED__(layer2,numFeatures,fcSize)
+        
+        return outputEncoded
     
-    
+    def train(self,X_train,filterSize,numFilters,fcSize,strides,k):
+        '''
+        Method to train the image-caption generator
+        
+        Until Convergence:
+            1. Call __IMAGEENCODER__ which generates a fully connected component
+            2. That component is fed into the __IMAGEDECODER__ which will output phrases
+            3. Calculate J(Theta) and update weights and biases via truncated backpropogation
+        '''
+        #placeholder for image
+        x = tf.placeholder(tf.float32, shape=[None, self.flattenDim], name='x')
+        x = tf.reshape(x, shape=[-1, config.IMG_SIZE, config.IMG_SIZE, 3])
+        #placeholder for caption will go here
+        
+        #attempt at training model
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            feed_dict = {x:X_train}
+            cnnOutput = sess.run(self.__IMAGEENCODER__(x,filterSize,numFilters,fcSize,strides,k),feed_dict=feed_dict)
+            
+        return cnnOutput
+
+def main():
+    with tf.Session() as sess:
+        #TO TEST IF MODEL IS WORKING
+        dir_ = 'train2014_normalized/'
+        img = 'COCO_train2014_000000051379.jpg'
+        imgData = np.array([tf.cast(data.imread(os.path.join(dir_, img)),tf.float32)])
+
+        sess.run(tf.global_variables_initializer())
+        model = ImageCaptionGenerator()
+        return model.train(imgData,3,5,128,1,2)
+
+ 
         
 
     
