@@ -37,10 +37,10 @@ class ImageCaptionGenerator():
     This algorithm will implement truncated back propogation.
     '''
     def __init__(self):
-        self.imgSize = config.IMG_SIZE
-        self.flattenDim = config.IMG_SIZE * config.IMG_SIZE
-        self.imageShape = (config.IMG_SIZE, config.IMG_SIZE)
-        self.numChannels = 3
+        self.imgSize = config.IMG_SIZE #size of the image (28)
+        self.flattenDim = config.IMG_SIZE * config.IMG_SIZE #area of the image 28*28
+        self.imageShape = (config.IMG_SIZE, config.IMG_SIZE) #dimensions of the image
+        self.numChannels = config.NUM_CHANNELS #number of input channels
 
 
     
@@ -161,7 +161,8 @@ class ImageCaptionGenerator():
         
         return normFullConnected
     
-    def __IMAGEENCODER__(self,X_train,numInputChannels,filterSize,numFilters,fcSize,strides,k):
+    def __IMAGEENCODER__(self,X_train,numInputChannels,filterSize,numFilters,
+                         fcSize,strides,k):
         '''
         Function to build the Image Encoding (CNN) step of the image-caption
         generation. It essentially will use an input set of images and develop
@@ -170,9 +171,18 @@ class ImageCaptionGenerator():
         decoder (RNN).
         '''
         
-        #input layer 
-        layer1, weights = self.__CREATECNNCHUNK__(X_train,numInputChannels,filterSize,numFilters,strides,k)
+        #convolution layer 
+        layer1, weights = self.__CREATECNNCHUNK__(X_train,
+                                                  numInputChannels,
+                                                  filterSize,
+                                                  numFilters,
+                                                  strides,
+                                                  k)
+        
+        #flatten layer
         layer2, numFeatures = self.__FLATTEN__(layer1)
+        
+        #fully connected layer
         outputEncoded = self.__FULLYCONNECTED__(layer2,numFeatures,fcSize)
         
         return outputEncoded
@@ -191,7 +201,7 @@ class ImageCaptionGenerator():
         x = tf.reshape(x, shape=[-1, config.IMG_SIZE, config.IMG_SIZE, 4])
         #placeholder for caption will go here
         
-        cnnOutput = self.__IMAGEENCODER__(x,filterSize,self.numChannels,numFilters,fcSize,strides,k)
+        cnnOutput = self.__IMAGEENCODER__(x,self.numChannels,filterSize,numFilters,fcSize,strides,k)
             
         return cnnOutput, x
 
@@ -209,7 +219,8 @@ def main():
     print(len(image_data))
    
     model = ImageCaptionGenerator()
-    cnnOutput, x = model.train(4,5,128,1,2)
+    cnnOutput, x = model.train(config.FILTER_SIZE,config.NUM_FILTERS,config.FULLY_CON_LAYER_SIZE,
+                               config.STRIDES,config.POOL_SIZE)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
