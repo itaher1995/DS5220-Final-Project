@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import config
 from skimage import data
 from time import time
+import pandas as pd
 import pickle
 import os
 from PIL import Image
@@ -176,7 +177,7 @@ class ImageCaptionGenerator():
         
         return outputEncoded
     
-    def train(self,X_train,filterSize,numFilters,fcSize,strides,k):
+    def train(self,filterSize,numFilters,fcSize,strides,k):
         '''
         Method to train the image-caption generator
         
@@ -187,27 +188,46 @@ class ImageCaptionGenerator():
         '''
         #placeholder for image
         x = tf.placeholder(tf.float32, shape=[None, self.flattenDim], name='x')
-        x = tf.reshape(x, shape=[-1, config.IMG_SIZE, config.IMG_SIZE, 3])
+        x = tf.reshape(x, shape=[-1, config.IMG_SIZE, config.IMG_SIZE, 4])
         #placeholder for caption will go here
         
-        #attempt at training model
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            feed_dict = {x:X_train}
-            cnnOutput = sess.run(self.__IMAGEENCODER__(x,filterSize,numFilters,fcSize,strides,k),feed_dict=feed_dict)
+        cnnOutput = self.__IMAGEENCODER__(x,filterSize,numFilters,fcSize,strides,k)
             
-        return cnnOutput
+        return cnnOutput, x
 
 def main():
-    with tf.Session() as sess:
-        #TO TEST IF MODEL IS WORKING
-        dir_ = 'train2014_normalized/'
-        img = 'COCO_train2014_000000051379.jpg'
-        imgData = np.array([tf.cast(data.imread(os.path.join(dir_, img)),tf.float32)])
+    img_data = pd.read_pickle("train_data.pkl")
+    
+    # Just gets a couple images and captions for testing right now
+    image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+    print(image_filenames)
+    
+    data_directory = "train2014_normalized"
+    
+    image_data = []
+    
+    for f in image_filenames:
+        
+        filepath = os.path.join(data_directory, f)
+        
+        image_data.append(data.imread(filepath))
+    
+    print(len(image_data))
 
+    
+    model = ImageCaptionGenerator()
+    cnnOutput, x = model.train(3,5,128,1,2)
+
+    with tf.Session() as sess:
+        
         sess.run(tf.global_variables_initializer())
-        model = ImageCaptionGenerator()
-        return model.train(imgData,3,5,128,1,2)
+
+        feed_dict = {x: image_data}
+
+        result = sess.run(cnnOutput, feed_dict = feed_dict)
+
+        print(result)
+    
 
  
         
