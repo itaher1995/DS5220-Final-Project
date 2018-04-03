@@ -41,6 +41,14 @@ class ImageCaptionGenerator():
         self.flattenDim = config.IMG_SIZE * config.IMG_SIZE #area of the image 28*28
         self.imageShape = (config.IMG_SIZE, config.IMG_SIZE) #dimensions of the image
         self.numChannels = config.NUM_CHANNELS #number of input channels
+        self.eta = config.LEARNING_RATE #eta is the learning rate
+        self.maxCapLength = config.MAX_CAP_LEN #max length of any sentence for padding
+        self.numLSTMUnits = config.NUM_LSTM_UNITS #number of hidden layers
+        self.batchSize = config.BATCH_SIZE #size of batches to be used for training
+        self.numTokens = config.NUM_TOKENS #number of tokens in our corpus
+        self.dimEmbeddling = config.DIM_EMBEDDING #dimensions of the embedding matrix for P(S_t|S_(t-1),...S_1)
+        self.numLSTMEpochs = config.NUM_LSTM_EPOCHS #the number epochs we will be training over
+        
 
 
     
@@ -64,6 +72,23 @@ class ImageCaptionGenerator():
         INPUT: length (a tensor that is the length of the number of filters)
         '''
         return tf.Variable(tf.constant(0.05, shape=[length]))
+    
+    def __STRINGPADDER__(self,captionMatrix,maxCapLength):
+        '''
+        Takes a a matrix of captions and pads them s.t. all of our captions have the same length.
+        '''
+        padded_matrix = []
+        for i in range(len(captionMatrix)):
+            caption_array = captionMatrix[i]
+            
+            # Want to pad up to max length
+            num_pad = maxCapLength - len(caption_array)
+            
+            # Pads strings with zero's. Accounted for this when we mapped the word idx's starting at 1
+            padded_caption = np.pad(caption_array, (0,num_pad), 'constant', constant_values = (0,0))
+            padded_matrix.append(padded_caption)
+
+        return padded_matrix
     
     def __CREATECNNCHUNK__(self,inputLayer,
                           numInputChannels,
@@ -186,6 +211,8 @@ class ImageCaptionGenerator():
         outputEncoded = self.__FULLYCONNECTED__(layer2,numFeatures,fcSize)
         
         return outputEncoded
+    
+    def __BUILDRNN__()
     
     def train(self,filterSize,numFilters,fcSize,strides,k):
         '''
