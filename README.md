@@ -1,27 +1,21 @@
 # DS5220-Final-Project
 
-## How to get this repository onto your computer?
+## Important Work to be Done:
 
-Open terminal and navigate to the desired directory (i.e. I have this repository in Desktop/Github.)
+0. See what this is creating
 
-Once there type git clone https://github.com/itaher1995/DS5220-Final-Project.git
+1. Create Batch Function
 
-It will then clone anything from the repository onto your local machine.
+2. Make sure data functions work
 
-## How to push new stuff to our repository?
+3. Create Grid Search for CV
 
-git add NAME_OF_FILE
+4. Save Analysis that we need
 
-git commit -m "insert message here"
+5. Run it
 
-git push
+6. BLEU score integration
 
-NOTE: If one of us has pushed something and then the other tries to push, git might throw an error. This is because you need to pull the information from the repository
+7. COCO API
 
-## How to pull information from repository?
 
-git pull
-
-Other stuff we might want to look into to familiarize ourselves with git
-
-* Creating our own branches and merging them (this might work well if you are working on a change and I am working on a change to different files that have dependencies, though for only us two I don't think it'll be necessary.)
