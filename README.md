@@ -4,6 +4,8 @@
 
 0. See what this is creating
 
+  * Need to test.
+
 1. Create Batch Function
 
 2. Make sure data functions work
