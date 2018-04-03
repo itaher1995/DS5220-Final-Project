@@ -11,10 +11,12 @@ import config
 import pickle
 import os
 
+#import nltk
+#nltk.download('punkt')
+
 def get_data(file):
 
-	filename = "/Users/forresthooton/Documents/Masters Classes/Supervised Machine Learning/Class Project/" + file
-	data = pd.read_csv(filename)
+	data = pd.read_csv(file)
 
 	return data
 
@@ -57,13 +59,139 @@ def build_vocab(filetype):
 
 	return words_for_dict
 
-def write_captions(filetype,dictionary):
-	filename = filetype + "_annotations.csv"
-	data = get_data(filename)
+def make_word_idx_files(dictionary):    
+    
+    idx_to_word = {}
+    for i in range(len(dictionary)):
+        idx_to_word[i+1] = dictionary[i]
+    
+    ## Include start word and stop word
+    idx_to_word[config.START_TOKEN_IDX] = "_start_"
+    idx_to_word[config.STOP_TOKEN_IDX] = "_stop_"
 
-	for idx, row in data.iterrows():
-		ann_words = word_tokenize(row['caption'])
-		print(ann_words)
+
+    word_to_idx = {word: idx for idx, word in idx_to_word.items()}
+
+    print(idx_to_word)
+    print(word_to_idx)
+
+    # Writes the tokens to token file with index
+    with open('idx_to_word.pkl', 'wb') as f:
+        pickle.dump(idx_to_word, f)
+    with open('word_to_idx.pkl', 'wb') as f:
+        pickle.dump(word_to_idx, f)
+
+def padder(sentance):
+    
+    sentance = [config.START_TOKEN_IDX] + sentance + [config.STOP_TOKEN_IDX]
+    print(sentance)
+    
+    # Want to pad up to max length
+    num_pad = config.MAX_CAP_LEN + 3 - len(sentance)
+
+    # Pads strings with zero's. Accounted for this when we mapped the word idx's starting at 1
+    padded_sentance = np.pad(caption_array, (0,num_pad), 'constant', constant_values = (0,0))
+
+    return padded_sentance
+
+def get_captions(filetype,dictionary):
+    """
+    Get's captions that only contain words in dictionary
+    """
+
+    filename = filetype + "_annotations.csv"
+    data = get_data(filename)
+    
+    captions = pd.DataFrame()
+
+    for idx, row in data.iterrows():
+        ann_words = word_tokenize(row['caption'])
+
+        # Makes sure we're only getting rows within the size range we want
+        if len(ann_words) < config.MAX_CAP_LEN:
+            #print(5)
+            continue
+
+        #print(1)
+        for word in ann_words:
+            #print(2)
+            if word not in dictionary:
+                #print(3)
+                continue
+        #print(3)
+        captions = pd.concat([captions, row], 1)
+
+    captions = captions.T
+    #print(len(captions))
+    #print(captions.head())
+
+    return captions
+
+def attach_annotations(imgData, annData):
+
+    start = time()
+    condencedData = pd.DataFrame()
+
+    word_to_idx = pd.read_pickle("word_to_idx.pkl")
+
+    # Cycles through each image in the image data table
+    for img in imgData['image_id']:
+        
+        # Returns the subset of annotations with a particular image_id
+        annSub = annData[annData['image_id'] == img]
+        annDict = {}
+        
+        matrix = []
+
+        # Goes through each row of annotation subset for a specific image id and makes a single dictionary
+        # where the key is the caption_id and the value is the caption
+        for idx, row in annSub.iterrows():
+            annDict[row['caption_id']] = row['caption']
+            
+            # Gets the tokenized sequence of indexes corresponding to words
+            idx_annotation = [word_to_idx[word] for word in word_tokenize(row['caption'])]
+            idx_annotation = padder(idx_annotation)
+            matrix.append(idx_annotation)
+        
+        # Makes a pd.Series to updata a new df with the image_id and associated annotations
+        entry = pd.Series()
+        entry['image_id'] = img
+        entry['annotations'] = annDict
+        entry['idx_caption_matrix'] = matrix
+        
+        # Adds column into df
+        condencedData = pd.concat([condencedData, entry], 1)
+    
+    condencedData = condencedData.T
+    
+    # Merges the new df of image_id's and annotations into image data table
+    imgData = imgData.merge(condencedData, on = 'image_id', how = 'left')
+    
+    print("DONE IN", round(time() - start), "SEC")
+    
+    return imgData
+
+
+def merge_img_caption_data(captions, filetype):
+    
+    file = "img_" + filetype + "image_data.csv"
+    
+    data = pd.read_csv(file)
+    data.rename(columns = {'id':'image_id'})
+
+    captions.rename(columns = {'id':'caption_id'})
+    
+    image_ids = captions['image_id'].copy()
+
+    # data_subset is images who have corresponding captions
+    data_subset = data[data['image_id'] == captions['image_id']]
+
+    joined_data = attach_annotations(data_subset, captions)
+
+    outfile = filetype + "_data.pkl"
+
+    joined_data.to_pickle(outfile)
+
 
 def resize_images():
     
@@ -110,19 +238,35 @@ def resize_images():
 
 def main():
 	# Get num_tokens most frequent words in coco dataset (This will allow for a higher validation score)
-	# Pull all the captions with those words
+	
+    # Pull all the captions with those words, include max_pad_length operation here
 	# Tokenize words using nltk.tokenize
-	# Pull all sentances within max_pad_length
 	
 	# Create word to index files based off these tokenized sentances, including pad, start, and stop tokens
 	# Integrate padded files togeather into data_train and data_test pickles
 	# Resize and clean images based on words in those files
 
-	train_dict = build_vocab('train')
-	write_captions('train', train_dict)
+    # Get num_tokens most frequent words in coco dataset (This will allow for a higher validation score)
+    train_dict = build_vocab('train')
+
+    # Create word to index files based off these tokenized sentances, including pad(0), start (len_dict+1), and stop tokens (len_dict+2)
+    #make_word_idx_files(train_dict)
+
+    # Integrates startwords, stopwords, and padding to captions who's words are in the dictionary
+    train_caps = get_captions('train', train_dict)
+    val_caps = get_captions('val', train_dict)
+
+    print(len(train_caps))
+    print(train_caps.head())
+
+    print(len(val_caps))
+    print(val_caps.head())
+    #merge_img_caption_data(train_caps, 'train')
+    #merge_img_caption_data(val_caps, 'val')
 
 
-	print("temporary")
+    
+    print("temporary")
 
 
 
