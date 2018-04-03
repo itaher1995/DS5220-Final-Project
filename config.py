@@ -22,7 +22,9 @@ POOL_SIZE = 2
 
 with open('tokens.pkl', 'rb') as f: 
     NUM_TOKENS = len(pickle.load(f))
-NUM_TOKENS = 3000
+NUM_TOKENS = 6000
+START_TOKEN_IDX = NUM_TOKENS + 1
+STOP_TOKEN_IDX = NUM_TOKENS + 2
 MAX_CAP_LEN = 49   # Optained from a print out in tokenize_captions() of data_handling.py    
 BATCH_SIZE = 5  # Of images and sentances sent into model
 
