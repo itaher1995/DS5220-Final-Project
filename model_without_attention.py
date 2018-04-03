@@ -63,13 +63,15 @@ def lstm_to_word_output(embedded_words, hidden_state, cnn_output, L_0, L_h, L_z)
 class ImageCaptionGenerator():
     
     def __init__(self):
-        hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
-        current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_current_state")
+        self.hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
+
+        with tf.device("/cpu:0"):
+            self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1.0, 1.0), name='embedding_weights')
 
 
     # Goal of model() is to initialize all the variables we will need in training, thus initializing the structure
     # Then, wherever the variables go, goal is to minimize loss over some sort of optimization, like the Adam optimizer
-    def train_model():
+    def train_model(self):
         
         # Tensor to return and demonstrate program works
         #tester = tf.constant("it works")
@@ -102,18 +104,11 @@ class ImageCaptionGenerator():
 
                     # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
                     initial_hidden_state = self.hidden_state
-                    initial_current_state = self.current_state
+                    initial_current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
 
                     # Needed to start model, tuple of vectors
                     prior_state = initial_hidden_state, initial_current_state
                     #prior_state = m.initial_state.eval()
-
-                    
-                with tf.variable_scope("word_embedding"):
-                    # Creats matrix the size of the number of possible words to map the probability weights
-                    embedding_matrix = tf.get_variable(
-                            shape = [config.NUM_TOKENS, config.DIM_EMBEDDING],  # DIM_EMBEDDING should be the same size as the max length, as the diminsions reperesent the probability the word apprears in that part of the sequence
-                            name = 'embedding_weights')
                 
                 predicted_caption = []
                 loss = 0
@@ -136,7 +131,7 @@ class ImageCaptionGenerator():
                             with tf.device("/cpu:0"):
                                 # Accounts for the one_hot vector
                                 # BATCH_SIZE x NUM_TOKENS matrix
-                                prior_word_probs = tf.nn.embedding_lookup(embedding_matrix, prior_word)
+                                prior_word_probs = tf.nn.embedding_lookup(self.embedding_matrix, prior_word)
                             current_input = tf.multiply(prior_word_probs, tf.cast(onehot_labels, tf.float32))
                     
                     with tf.variable_scope("lstm_function"):
@@ -171,14 +166,13 @@ class ImageCaptionGenerator():
                     # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
                     tf.get_variable_scope().reuse_variables()
         
-        hidden_state, current_state = prior_state
+        hidden_state, _ = prior_state
         self.hidden_state = hidden_state
-        self.current_state = current_state
 
         return loss, images, captions
 
 
-        def use_model():
+        def use_model(self):
             # Tensor to return and demonstrate program works
             #tester = tf.constant("it works")
             
@@ -218,7 +212,7 @@ class ImageCaptionGenerator():
                                 with tf.device("/cpu:0"):
                                     # Accounts for the one_hot vector
                                     # BATCH_SIZE x NUM_TOKENS matrix
-                                    prior_word_probs = tf.nn.embedding_lookup(embedding_matrix, prior_word)
+                                    prior_word_probs = tf.nn.embedding_lookup(self.embedding_matrix, prior_word)
                                 current_input = tf.multiply(prior_word_probs, tf.cast(onehot_labels, tf.float32))
                         
                         with tf.variable_scope("lstm_function"):
@@ -248,130 +242,131 @@ class ImageCaptionGenerator():
             return generated_captions, images, captions
         
         
-    # This is what it we'll use to actually train the model, wether in a different train function or train file
-    def train():
+# This is what it we'll use to actually train the model, wether in a different train function or train file
+def train():
+    
+    # reads in necessary image data
+    img_data = pd.read_pickle("train_data.pkl")
+    
+    # Just gets a couple images and captions for testing right now
+    image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+    print(image_filenames)
+    
+    data_directory = "train2014_normalized"
+    
+    image_data = []
+    caption_data = []
+    
+    for f in image_filenames:
         
-        # reads in necessary image data
-        img_data = pd.read_pickle("train_data.pkl")
+        filepath = os.path.join(data_directory, f)
         
-        # Just gets a couple images and captions for testing right now
-        image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
-        print(image_filenames)
+        image_data.append(data.imread(filepath))
         
-        data_directory = "train2014_normalized"
+        cap_row = img_data[img_data['file_name'] == f].copy()
         
-        image_data = []
-        caption_data = []
+        # Note that annotations is a pd.Series()
+        idx_captions = cap_row['idx_caption_matrix'].item()        
         
-        for f in image_filenames:
-            
-            filepath = os.path.join(data_directory, f)
-            
-            image_data.append(data.imread(filepath))
-            
-            cap_row = img_data[img_data['file_name'] == f].copy()
-            
-            # Note that annotations is a pd.Series()
-            idx_captions = cap_row['idx_caption_matrix'].item()        
-            
-            # really only want one annotation per image for testing
-            for sentance in idx_captions:
-                caption_data.append(sentance)
-                break
-            
-        print(caption_data)
-        print(len(image_data))
+        # really only want one annotation per image for testing
+        for sentance in idx_captions:
+            caption_data.append(sentance)
+            break
+        
+    print(caption_data)
+    print(len(image_data))
 
-        # Allows us to save training sessions
-        if not os.path.exists(config.SUMMARY_DIRECTORY):
-                os.mkdir(config.SUMMARY_DIRECTORY)
+    # Allows us to save training sessions
+    if not os.path.exists(config.SUMMARY_DIRECTORY):
+            os.mkdir(config.SUMMARY_DIRECTORY)
+
+    with tf.Session() as sess:
+        model = ImageCaptionGenerator()
 
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
                                                 sess.graph)
+        #saver = tf.train.Saver(max_to_keep=50)
+        loss, images, captions = model.train_model()
 
-        loss, images, captions = train_model()
-
-        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(self.loss)
+        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
 
         # This is where the number of epochs for the LSTM are controlled
-        for i in range(config.NUM_LSTM_EPOCHS):
-            with tf.Session() as sess:
-                
-                sess.run(tf.global_variables_initializer())
-                
-                # Need to pad captions
-                caption_data = string_padder(caption_data)
-                
-                feed_dict = {images: image_data,
-                             captions: caption_data}
-                             #m.initial_state = initial_state}
-                
-                _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
-                
-                # each result is a result per image
-                print(loss_result)
-        
-        summ_writer.close()
-        
-    def test():
-
-        # reads in necessary image data
-        img_data = pd.read_pickle("train_data.pkl")
-        
-        # Just gets a couple images and captions for testing right now
-        image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
-        print(image_filenames)
-        
-        data_directory = "train2014_normalized"
-        
-        image_data = []
-        caption_data = []
-        
-        for f in image_filenames:
+        for epoch in range(config.NUM_LSTM_EPOCHS):
             
-            filepath = os.path.join(data_directory, f)
-            
-            image_data.append(data.imread(filepath))
-            
-            cap_row = img_data[img_data['file_name'] == f].copy()
-            
-            # Note that annotations is a pd.Series()
-            idx_captions = cap_row['idx_caption_matrix'].item()        
-            
-            # really only want one annotation per image for testing
-            for sentance in idx_captions:
-                caption_data.append(sentance)
-                break
-        
-        print(caption_data)
-        print(len(image_data))
-
-        generated_captions, images, captions = use_model()
-
-        with tf.Session() as sess:
-            
-            model = tf.train.Saver()
-            model.restore(sess, config.MODEL_PATH)
-
             sess.run(tf.global_variables_initializer())
             
             # Need to pad captions
             caption_data = string_padder(caption_data)
             
             feed_dict = {images: image_data,
-                         initial_hidden_state: self.hidden_state
-                         initial_current_state: self.current_state}
+                         captions: caption_data}
                          #m.initial_state = initial_state}
             
-            result = sess.run(generated_captions, feed_dict = feed_dict)
+            _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
             
             # each result is a result per image
-            print(result)
+            print(loss_result)
+            #saver.save(sess, os.path.join(confg.MODEL_PATH, 'model'), global_step=epoch)
+    
+    summ_writer.close()
+    
+def test():
+
+    # reads in necessary image data
+    img_data = pd.read_pickle("train_data.pkl")
+    
+    # Just gets a couple images and captions for testing right now
+    image_filenames = list(img_data['file_name'][0:config.BATCH_SIZE])
+    print(image_filenames)
+    
+    data_directory = "train2014_normalized"
+    
+    image_data = []
+    caption_data = []
+    
+    for f in image_filenames:
+        
+        filepath = os.path.join(data_directory, f)
+        
+        image_data.append(data.imread(filepath))
+        
+        cap_row = img_data[img_data['file_name'] == f].copy()
+        
+        # Note that annotations is a pd.Series()
+        idx_captions = cap_row['idx_caption_matrix'].item()        
+        
+        # really only want one annotation per image for testing
+        for sentance in idx_captions:
+            caption_data.append(sentance)
+            break
+    
+    print(caption_data)
+    print(len(image_data))
+
+    generated_captions, images, captions = use_model()
+
+    with tf.Session() as sess:
+        
+        #model = tf.train.Saver()
+        #model.restore(sess, config.MODEL_PATH)
+
+        sess.run(tf.global_variables_initializer())
+        
+        # Need to pad captions
+        caption_data = string_padder(caption_data)
+        
+        feed_dict = {images: image_data,
+                     initial_hidden_state: self.hidden_state}
+                     #m.initial_state = initial_state}
+        
+        result = sess.run(generated_captions, feed_dict = feed_dict)
+        
+        # each result is a result per image
+        print(result)
         
 
 def main():
-    model = ImageCaptionGenerator()
-    model.test()
+    train()
 
 if __name__ == "__main__":
     main()
