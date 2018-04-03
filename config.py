@@ -18,6 +18,7 @@ FILTER_SIZE = 3
 
 with open('tokens.pkl', 'rb') as f: 
     NUM_TOKENS = len(pickle.load(f))
+NUM_TOKENS = 3000
 MAX_CAP_LEN = 49   # Optained from a print out in tokenize_captions() of data_handling.py    
 BATCH_SIZE = 5  # Of images and sentances sent into model
 
@@ -30,7 +31,7 @@ NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
 NUM_LSTM_UNITS = NUM_CNN_OUTPUTS
 DIM_EMBEDDING = NUM_CNN_OUTPUTS  # Need to set this for embedding_matrix
 
-LEARNING_RATE = .01
+LEARNING_RATE = .1
 NUM_LSTM_EPOCHS = 1
 
 

@@ -123,7 +123,7 @@ class ImageCaptionGenerator():
                     onehot_labels = tf.one_hot(labels, config.NUM_TOKENS,
                                                on_value = 1, off_value = 0,
                                                name = "onehot_labels")
-                    print("onehot:", onehot_labels.shape)
+                    #print("onehot:", onehot_labels.shape)
 
                     if i != 0:
                         with tf.variable_scope("word_embedding"):
@@ -153,7 +153,7 @@ class ImageCaptionGenerator():
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
                     current_loss = tf.reduce_sum(cross_entropy)
                     loss = loss + current_loss
-                    print("Loop", i, "Loss", loss)
+                    #print("Loop", i, "Loss", loss)
 
                     predicted_word = tf.argmax(p_t, 1)
 
@@ -168,7 +168,7 @@ class ImageCaptionGenerator():
         
         hidden_state, _ = prior_state
         self.hidden_state = hidden_state
-
+        print(2)
         return loss, images, captions
 
 
@@ -270,15 +270,17 @@ def train():
         
         # really only want one annotation per image for testing
         for sentance in idx_captions:
-            caption_data.append(sentance)
+            #caption_data.append(sentance)
+            caption_data.append(list(range(len(sentance))))
             break
         
     print(caption_data)
     print(len(image_data))
-
+    
     # Allows us to save training sessions
     if not os.path.exists(config.SUMMARY_DIRECTORY):
             os.mkdir(config.SUMMARY_DIRECTORY)
+
 
     with tf.Session() as sess:
         model = ImageCaptionGenerator()
@@ -288,8 +290,10 @@ def train():
         #saver = tf.train.Saver(max_to_keep=50)
         loss, images, captions = model.train_model()
 
-        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
 
+        print(1)
+        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
+        print(3)
         # This is where the number of epochs for the LSTM are controlled
         for epoch in range(config.NUM_LSTM_EPOCHS):
             
@@ -301,7 +305,7 @@ def train():
             feed_dict = {images: image_data,
                          captions: caption_data}
                          #m.initial_state = initial_state}
-            
+            print(4)
             _, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
             
             # each result is a result per image
