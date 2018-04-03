@@ -13,6 +13,10 @@ IMG_SIZE = 28
 # CNN Hyper-parameters
 NUM_CHANNELS = 4
 FILTER_SIZE = 3
+NUM_FILTERS = 5
+FULLY_CON_LAYER_SIZE = 128
+STRIDES = 1
+POOL_SIZE = 2
 
 # For model.py
 

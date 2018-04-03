@@ -212,7 +212,8 @@ class ImageCaptionGenerator():
         
         return outputEncoded
     
-    def __BUILDRNN__()
+    def __IMAGEDECODER__(self):
+        return "This is not done yet"
     
     def train(self,filterSize,numFilters,fcSize,strides,k):
         '''
