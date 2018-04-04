@@ -21,11 +21,6 @@ def train():
     NOTE: will eventually read in data.
     '''
     tf.reset_default_graph()
-    
-    image_data, caption_data = hf.getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
-        
-    print(caption_data)
-    print("Image batch size", len(image_data))
 
     # Allows us to save training sessions
     if not os.path.exists(config.SUMMARY_DIRECTORY):
@@ -35,8 +30,6 @@ def train():
     with tf.Session() as sess:
         model = ImageDecoder()
 
-        summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
-                                                sess.graph)
         #saver = tf.train.Saver(max_to_keep=50)
         loss, summary, images, captions = model.buildModel()
 
@@ -45,18 +38,26 @@ def train():
         print(3)
         # This is where the number of epochs for the LSTM are controlled
         sess.run(tf.global_variables_initializer())
-        for epoch in range(config.NUM_LSTM_EPOCHS):
-            
-            feed_dict = {images: image_data,
-                         captions: caption_data}
-                         #m.initial_state = initial_state}
-            print(4)
-            _, results = sess.run([train_op, summary], feed_dict = feed_dict)
-            
-            # each result is a result per image
-            
-            summ_writer.add_summary(results, epoch)
-            #saver.save(sess, os.path.join(confg.MODEL_PATH, 'model'), global_step=epoch)
+
+        summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
+                                                sess.graph)
+        
+        for batch in range(config.NUM_BATCHES):
+            for epoch in range(config.NUM_LSTM_EPOCHS):
+                image_data, caption_data = hf.getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+                print(caption_data)
+                print("Image batch size", len(image_data))
+                
+                feed_dict = {images: image_data,
+                             captions: caption_data}
+                             #m.initial_state = initial_state}
+                print(4)
+                _, results = sess.run([train_op, summary], feed_dict = feed_dict)
+                
+                # each result is a result per image
+                
+                summ_writer.add_summary(results, epoch)
+                #saver.save(sess, os.path.join(confg.MODEL_PATH, 'model'), global_step=epoch)
     
     summ_writer.close()
     
