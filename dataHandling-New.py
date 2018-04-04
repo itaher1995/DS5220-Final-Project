@@ -157,6 +157,7 @@ def main():
     return f"This took {time()-start} seconds to finish" #188 seconds on my computer
     #didn't call resize images in here. Wasn't sure what you wanted to do with it.
     
-    
+if __name__ == "__main__":
+    main()   
 
 
