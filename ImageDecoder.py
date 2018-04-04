@@ -26,6 +26,7 @@ class ImageDecoder():
     '''
     
     def __init__(self):
+
         self.hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
 
         with tf.device("/cpu:0"):
@@ -40,7 +41,7 @@ class ImageDecoder():
         
         # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
         images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
-        captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN], name = "input_captions")
+        captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 2], name = "input_captions")
         
         # To include later if we want to help training
         # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
@@ -86,7 +87,7 @@ class ImageDecoder():
 
                 #with tf.variable_scope(tf.get_variable_scope()) as scope:
                 # For training, need to loop through all the of possible positions
-                for i in range(config.MAX_CAP_LEN):
+                for i in range(config.MAX_CAP_LEN + 2):
                     
                     # Create onehot vector, or vector of entire dictionary where the word in sentance is labeled 1
                     labels = captions[:,i]
