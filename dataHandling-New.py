@@ -90,7 +90,7 @@ def subsetCaptions(filePrefix,tokenMap):
     '''
     captionDataFrame=pd.read_csv(f'{filePrefix}_annotations.csv')
     captionDataFrame['caption']=captionDataFrame['caption'].apply(cleanString).str.split(' ')
-    captionIndices = [i for i in range(len(captionDataFrame)) if intersectionEquals(captionDataFrame['caption'].iloc[i],tokenMap.values()) and len(captionDataFrame.iloc[i])<=config.MAX_CAP_LEN]
+    captionIndices = [i for i in range(len(captionDataFrame)) if intersectionEquals(captionDataFrame['caption'].iloc[i],tokenMap.values()) and len(captionDataFrame['caption']t.iloc[i])<=config.MAX_CAP_LEN]
     return captionDataFrame.loc[captionIndices]
 
 def subsetImages(images,captions):
