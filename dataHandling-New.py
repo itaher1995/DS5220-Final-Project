@@ -88,14 +88,6 @@ def subsetImages(images,captions):
     '''
     return images.loc[images.image_id.isin(captions['image_id'])]
 
-def createMappingRepresentation(tokenList,tokenMap):
-    '''
-    Takes a list of tokens and then creates its token mapping accordingly.
-    '''
-    return [tokenMap[token] for token in tokenList]
-
-
-
 def mergeImageCaptionData(captions,filePrefix,tokenMap):
     '''
     Merges the image data and the caption data together in one dataframe.
@@ -155,9 +147,16 @@ def resize_images(filetype):
     
     print("Standardization DONE IN", round(time() - start), "SEC")
 
+def main():
+    start = time()
+    #do this for train
+    tokens = buildVocab('train')
+    tMap= tokenMap(tokens)
+    trainSubset = subsetCaptions('train',tMap)
+    mergedImageCaptionDataFrame = mergeImageCaptionData(trainSubset,'train',tMap)
+    return f"This took {time()-start} seconds to finish" #188 seconds on my computer
+    #didn't call resize images in here. Wasn't sure what you wanted to do with it.
     
-
-
     
 
 
