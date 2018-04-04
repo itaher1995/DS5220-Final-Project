@@ -48,6 +48,9 @@ def buildVocab(filePrefix):
     captionAgg = captionDataFrame.caption.str.cat(sep=' ')
     frequentTokens = pd.Series(word_tokenize(captionAgg)).value_counts().iloc[:config.NUM_TOKENS]
     #frequentTokens = frequentTokens[~(frequentTokens.index.isin(stopwords.words('english')))]
+
+    if config.CHANGE_VOCAB:
+        frequentTokens.to_pickle("tokens-1.pkl")
     
     return frequentTokens
 
@@ -60,6 +63,14 @@ def tokenMap(tokens):
     tokenMap = {i+1:tokenList[i] for i in range(len(tokens))}
     tokenMap[config.START_TOKEN_IDX]="__START__"
     tokenMap[config.STOP_TOKEN_IDX]="__STOP__"
+
+    if config.CHANGE_VOCAB:
+        tokenMapInverted = {word: idx for idx, word in tokenMap.items()}
+        # Writes the tokens to token file with index
+        with open('idx_to_word-1.pkl', 'wb') as f:
+            pickle.dump(tokenMap, f)
+        with open('word_to_idx-1.pkl', 'wb') as f:
+            pickle.dump(tokenMapInverted, f)
     
     return tokenMap
 
@@ -108,9 +119,9 @@ def resize_images(filetype):
     
     start = time()
     
-    datapath = filetype + "_data.pkl"
+    datapath = filetype + "_data-1.pkl"
 
-    data = pd.read_pickle(datapath)
+    Data = pd.read_pickle(datapath)
     
     data_directory = filetype + "2014"
     
@@ -120,20 +131,28 @@ def resize_images(filetype):
         os.makedirs(output_directory)
 
     # Only prints first 5 here for testing purposes
-    image_filenames = list(data['file_name'][0:5])
+    image_filenames = list(Data['file_name'].unique())
+    print("Number of images to reshape:",len(image_filenames))
     
-    print(image_filenames)
+    #print(image_filenames)
     
+    tracker = 0
     for f in image_filenames:
         
         filepath = os.path.join(data_directory, f)
         outpath = os.path.join(output_directory, f)
+
+        # Shortens process for images that already exist in the resize files
+        if config.CHANGE_IMAGES is False:
+            if os.path.exists(outpath):
+                tracker += 1
+                continue
         
-        #image = data.imread(filepath)
+        image = data.imread(filepath)
         
         #print(type(image))
         
-        plt.imshow(image)
+        #plt.imshow(image)
         
         result = transform.resize(image, (config.IMG_HEIGHT, config.IMG_WIDTH))
         
@@ -142,7 +161,10 @@ def resize_images(filetype):
         #plt.imshow(result)
         
         plt.imsave(outpath, result)
-        
+
+        if not tracker % 1000:
+            print("Number of images:",tracker, "   Current Time:",round(time() - start))
+        tracker += 1
         #plt.imshow(data.imread(outpath))
     
     print("Standardization DONE IN", round(time() - start), "SEC")
@@ -150,12 +172,15 @@ def resize_images(filetype):
 def main():
     start = time()
     #do this for train
+    """
     tokens = buildVocab('train')
     tMap= tokenMap(tokens)
     trainSubset = subsetCaptions('train',tMap)
     mergedImageCaptionDataFrame = mergeImageCaptionData(trainSubset,'train',tMap)
     return f"This took {time()-start} seconds to finish" #188 seconds on my computer
     #didn't call resize images in here. Wasn't sure what you wanted to do with it.
+    """
+    resize_images('train')
     
 if __name__ == "__main__":
     main()   
