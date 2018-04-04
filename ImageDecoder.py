@@ -7,6 +7,7 @@ Created on Tue Apr  3 16:44:59 2018
 
 import tensorflow as tf
 import config
+import math
 from ImageEncoder import ImageEncoder
 
 class ImageDecoder():
@@ -30,7 +31,11 @@ class ImageDecoder():
         self.hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
 
         with tf.device("/cpu:0"):
+            self.hidden_state = self.init_weight(config.BATCH_SIZE, config.NUM_LSTM_UNITS, name = "global_hidden_state")
             self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1.0, 1.0), name='embedding_weights')
+    
+    def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
+        return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in))), name=name)
     
     def buildModel(self):
         '''
