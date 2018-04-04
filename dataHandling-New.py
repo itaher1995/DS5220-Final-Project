@@ -99,6 +99,17 @@ def subsetImages(images,captions):
     '''
     return images.loc[images.image_id.isin(captions['image_id'])]
 
+# Pads captions with 0's and adds start word at beginning of token and stop word at end
+def padder(sentance):
+    sentance = [config.START_TOKEN_IDX] + sentance + [config.STOP_TOKEN_IDX]
+    # Want to pad up to max length, and need to account for start and stop words
+    num_pad = config.MAX_CAP_LEN + 2 - len(sentance)
+    print(num_pad)
+    # Pads strings with zero's. Accounted for this when we mapped the word idx's starting at 1
+    padded_sentance = np.pad(sentance, (0,num_pad), 'constant', constant_values = (0,0))
+    
+    return padded_sentance
+
 def mergeImageCaptionData(captions,filePrefix,tokenMap):
     '''
     Merges the image data and the caption data together in one dataframe.
@@ -109,6 +120,7 @@ def mergeImageCaptionData(captions,filePrefix,tokenMap):
     imgSubset = subsetImages(imageData,captions)
     wordToIndex = {tokenMap[k]:k for k in tokenMap}
     captions['mapped_captions']=[[wordToIndex[token] for token in caption] for caption in captions['caption']]
+    captions['mapped_captions'] = captions['mapped_captions'].apply(padder)
     imgCaptionMerge=pd.merge(imgSubset,captions,how='inner',on='image_id')
     outfile=f"{filePrefix}_data-1.pkl"
     imgCaptionMerge.to_pickle(outfile)
@@ -170,17 +182,17 @@ def resize_images(filetype):
     print("Standardization DONE IN", round(time() - start), "SEC")
 
 def main():
+    
     start = time()
     #do this for train
-    """
     tokens = buildVocab('train')
     tMap= tokenMap(tokens)
     trainSubset = subsetCaptions('train',tMap)
     mergedImageCaptionDataFrame = mergeImageCaptionData(trainSubset,'train',tMap)
     return f"This took {time()-start} seconds to finish" #188 seconds on my computer
     #didn't call resize images in here. Wasn't sure what you wanted to do with it.
-    """
-    resize_images('train')
+    
+    resize_images('val')
     
 if __name__ == "__main__":
     main()   
