@@ -27,15 +27,12 @@ class ImageDecoder():
     '''
     
     def __init__(self):
-
-        self.hidden_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS], name = "global_hidden_state")
-
         with tf.device("/cpu:0"):
             self.hidden_state = self.init_weight(config.BATCH_SIZE, config.NUM_LSTM_UNITS, name = "global_hidden_state")
             self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1.0, 1.0), name='embedding_weights')
     
     def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
-        return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in))), name=name)
+        return tf.Variable(tf.truncated_normal([dim_in, dim_out], name=name))
     
     def buildModel(self):
         '''
@@ -144,13 +141,45 @@ class ImageDecoder():
                     tf.get_variable_scope().reuse_variables()
         
         hidden_state, _ = prior_state
+        cross_entropies = tf.stack(cross_entropy)
+        # Got rid of the masks being divided by
+        cross_entropy_loss = tf.reduce_sum(cross_entropies)
+
+        self.loss = loss
+        self.cross_entropy_loss = cross_entropy_loss
         self.hidden_state = hidden_state
         print(2)
-        return loss, images, captions
+        summary = self.build_summary()
+        return loss,summary, images, captions
     
     def test(self):
         return "Incomplete"
-        
-        
+
+
+
+    def build_summary(self):
+        """ Build the summary (for TensorBoard visualization). """
+        """
+        with tf.name_scope("variables"):
+            for var in tf.trainable_variables():
+                with tf.name_scope(var.name[:var.name.find(":")]):
+                    self.variable_summary(var)
+        """
+        with tf.name_scope("metrics"):
+            tf.summary.scalar("cross_entropy_loss", self.cross_entropy_loss)
+            tf.summary.scalar("reg_loss", self.loss)
+
+        self.summary = tf.summary.merge_all()
+        return tf.summary.merge_all()
+
+    def variable_summary(self, var):
+        """ Build the summary for a variable. """
+        mean = tf.reduce_mean(var)
+        tf.summary.scalar('mean', mean)
+        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+        tf.summary.scalar('stddev', stddev)
+        tf.summary.scalar('max', tf.reduce_max(var))
+        tf.summary.scalar('min', tf.reduce_min(var))
+        tf.summary.histogram('histogram', var)
         
     

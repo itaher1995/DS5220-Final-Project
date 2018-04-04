@@ -38,25 +38,24 @@ def train():
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
                                                 sess.graph)
         #saver = tf.train.Saver(max_to_keep=50)
-        loss, images, captions = model.buildModel()
+        loss, summary, images, captions = model.buildModel()
 
         print(1)
         train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
         print(3)
         # This is where the number of epochs for the LSTM are controlled
+        sess.run(tf.global_variables_initializer())
         for epoch in range(config.NUM_LSTM_EPOCHS):
-            
-            sess.run(tf.global_variables_initializer())
             
             feed_dict = {images: image_data,
                          captions: caption_data}
                          #m.initial_state = initial_state}
             print(4)
-            summary, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
+            _, results = sess.run([train_op, summary], feed_dict = feed_dict)
             
             # each result is a result per image
-            print(loss_result)
-            summ_writer.add_summary(summary, epoch)
+            
+            summ_writer.add_summary(results, epoch)
             #saver.save(sess, os.path.join(confg.MODEL_PATH, 'model'), global_step=epoch)
     
     summ_writer.close()
