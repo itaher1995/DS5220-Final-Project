@@ -22,7 +22,7 @@ POOL_SIZE = 2
 
 with open('tokens.pkl', 'rb') as f: 
     NUM_TOKENS = len(pickle.load(f))
-NUM_TOKENS = 3000
+NUM_TOKENS = 3003
 START_TOKEN_IDX = NUM_TOKENS + 1
 STOP_TOKEN_IDX = NUM_TOKENS + 2
 MAX_CAP_LEN = 35
@@ -36,8 +36,8 @@ NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
 # because the lstm cell processes a output per cell (I think) and the word weights are based on
 # the image features (i.e. per this specific set of image features, what's the probability the features
 # correspond to a specific word)
-NUM_LSTM_UNITS = NUM_CNN_OUTPUTS
-DIM_EMBEDDING = NUM_CNN_OUTPUTS  # Need to set this for embedding_matrix
+NUM_LSTM_UNITS = NUM_CNN_OUTPUTS 
+DIM_EMBEDDING = NUM_CNN_OUTPUTS # Need to set this for embedding_matrix
 
 LEARNING_RATE = .1
 NUM_LSTM_EPOCHS = 1
