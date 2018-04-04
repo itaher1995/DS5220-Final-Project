@@ -63,8 +63,10 @@ class ImageEncoder():
         '''
         #shape list structure determined by TensorFlow API
         shape = [filterSize,filterSize,numInputChannels,numFilters]
-        weights = self.__INITIALIZEWEIGHTS__(shape) #creates weights given the shape
-        biases = self.__INITIALIZEBIAS__(length=numFilters) #creates new biases one for each filter
+        
+        with tf.name_scope("CONV.WeightsAndBiases"):
+            weights = self.__INITIALIZEWEIGHTS__(shape) #creates weights given the shape
+            biases = self.__INITIALIZEBIAS__(length=numFilters) #creates new biases one for each filter
         
         #convolution layer
         #This convolution step has its input being a previous layer, inputLayer,
@@ -131,8 +133,9 @@ class ImageEncoder():
         '''
         
         #initialize new weights and biases
-        weights = self.__INITIALIZEWEIGHTS__(shape=[numInputs, numOutputs])
-        biases = self.__INITIALIZEBIAS__(length=numOutputs)
+        with tf.name_scope("FULLYCONNECTED.WeightsAndBiases"):
+            weights = self.__INITIALIZEWEIGHTS__(shape=[numInputs, numOutputs])
+            biases = self.__INITIALIZEBIAS__(length=numOutputs)
         with tf.name_scope("Fully_Connected_Chunk"):
             fullyConnected = tf.matmul(inputLayer,weights, name="Fully_Connected_Layer") + biases
             
