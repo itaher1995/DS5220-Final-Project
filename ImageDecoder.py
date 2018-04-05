@@ -8,6 +8,7 @@ Created on Tue Apr  3 16:44:59 2018
 import tensorflow as tf
 import config
 import math
+import numpy as np
 #from ImageEncoder import ImageEncoder
 
 class ImageDecoder():
@@ -74,6 +75,7 @@ class ImageDecoder():
         '''
         #shape list structure determined by TensorFlow API
         shape = [filterSize,filterSize,numInputChannels,numFilters]
+
         
         with tf.name_scope("CONV.WeightsAndBiases"):
             weights = self.__INITIALIZEWEIGHTS__(shape) #creates weights given the shape
@@ -155,7 +157,10 @@ class ImageDecoder():
         
         return normFullConnected
     
-    def buildModel(self):
+    def buildModel(self,filterSize,
+                          numFilters,
+                          strides,
+                          k):
         '''
         Builds the LSTM and CNN and links them together.
         '''
@@ -172,8 +177,8 @@ class ImageDecoder():
         # Build CNN
         with tf.name_scope("Image_Encoder"):
             chunk, weights = self.createCNNChunk(images,config.NUM_CHANNELS,
-                                                config.FILTER_SIZE, config.NUM_FILTERS,
-                                                config.STRIDES, config.POOL_SIZE)
+                                                 filterSize, numFilters,
+                                                 strides, k)
             
             flattenLayer, numFeatures = self.flatten(chunk)
             cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,

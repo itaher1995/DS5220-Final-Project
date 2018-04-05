@@ -13,10 +13,36 @@ import pandas as pd
 import os
 from time import time
 import numpy as np
-import helperFunctions as hf
+from skimage import data
 
 
-def train():
+def getImageBatchFromPickle(pkl, data_directory):
+    '''
+    Gets the image batch and the corresponding captions. Takes a pickle file
+    and then randomly select batchSize indices. Then we locate the those
+    indices in the dataframe and output a dataframe with just the file_name
+    and the idx_captions.
+    '''
+    df = pd.read_pickle(pkl)
+    imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
+    imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
+    
+    # Just gets a couple images and captions for testing right now
+    image_filenames = list(imageBatch['file_name'])
+    print(image_filenames)
+    
+    images = []
+    captions = []
+    
+    for f in image_filenames:
+        filepath = os.path.join(data_directory, f)
+        images.append(data.imread(filepath))
+        cap_row = imageBatch[imageBatch['file_name'] == f]
+        captions.append(list(cap_row['mapped_captions'].item()))
+    
+    return images, captions
+
+def train(filterSize,numFilters,strides,k,eta):
     '''
     NOTE: will eventually read in data.
     '''
@@ -33,12 +59,12 @@ def train():
     with tf.Session() as sess:
         model = ImageDecoder()
 
-        loss, summary, images, captions = model.buildModel()
+        loss, summary, images, captions = model.buildModel(filterSize,numFilters,strides,k)
 
         saver = tf.train.Saver(max_to_keep=50)
 
         print(1)
-        train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
+        train_op = tf.train.AdamOptimizer(eta).minimize(loss)
         print(3)
         # This is where the number of epochs for the LSTM are controlled
         sess.run(tf.global_variables_initializer())
@@ -52,7 +78,7 @@ def train():
         
         for batch in range(config.NUM_BATCHES):
             for epoch in range(config.NUM_LSTM_EPOCHS):
-                image_data, caption_data = hf.getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+                image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
                 print(caption_data)
                 print("Image batch size", len(image_data))
                 
@@ -60,7 +86,7 @@ def train():
                              captions: caption_data}
                              #m.initial_state = initial_state}
 
-                _, results = sess.run([train_op, summary], feed_dict = feed_dict)
+                _, results, loss_result = sess.run([train_op, summary, loss], feed_dict = feed_dict)
                 
                 # each result is a result per image
                 
@@ -68,10 +94,33 @@ def train():
                 saver.save(sess, config.MODEL_PATH, global_step=epoch)
     
     summ_writer.close()
-    
+    return loss_result
 def test(X):
     return "hey"
-    
+
+def gridSearch(filterSize,numFilters,strides,k,eta):
+    '''
+    Conducts a grid search on all set hyperparameters.
+    '''
+    bestLoss = 100000
+    for fs in filterSize:
+        for nf in numFilters:
+            for s in strides:
+                for poolsize in k:
+                    for e in eta:
+                        loss = train(fs,nf,s,poolsize,e)
+                        if loss<bestLoss:
+                            bestEta = e
+                            bestK = poolsize
+                            bestS = s
+                            bestNF = nf
+                            bestFS = fs
+    return bestEta, bestK, bestS, bestNF, bestFS
+                            
+                        
+                        
+                        
+ 
 def meanBLEUScore(candidate3DArray,groundTruth2DArray):
     '''
     Calculates the mean BLEU Score over all images. Will eventually take in an
