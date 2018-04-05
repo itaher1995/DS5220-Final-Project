@@ -29,6 +29,7 @@ MAX_CAP_LEN = 35
 CHANGE_VOCAB = False
 CHANGE_IMAGES = False
 BATCH_SIZE = 5  # Of images and sentances sent into model
+NUM_BATCHES = 5
 
 NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
 
@@ -41,10 +42,10 @@ DIM_EMBEDDING = NUM_CNN_OUTPUTS # Need to set this for embedding_matrix
 
 LEARNING_RATE = .1
 NUM_LSTM_EPOCHS = 1
-
+USE_PRETRAINED_MODEL = False
 
 SUMMARY_DIRECTORY = "pretrained_models"   # Where to write the graphs of the model running
-MODEL_PATH = ""
+MODEL_PATH = "pretrained_models/model-1.ckpt"
 
 
 
