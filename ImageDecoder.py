@@ -275,7 +275,7 @@ class ImageDecoder():
         self.hidden_state = hidden_state
         print(2)
         summary = self.build_summary()
-        return loss,summary, images, captions
+        return loss,summary, predicted_caption, images, captions
         
     def test(self):
         return "Incomplete"

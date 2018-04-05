@@ -19,12 +19,9 @@ STRIDES = 1
 POOL_SIZE = 2
 
 # For model.py
-
-with open('tokens.pkl', 'rb') as f: 
-    NUM_TOKENS = len(pickle.load(f))
 NUM_TOKENS = 3003
-START_TOKEN_IDX = NUM_TOKENS + 1
-STOP_TOKEN_IDX = NUM_TOKENS + 2
+START_TOKEN_IDX = NUM_TOKENS - 2
+STOP_TOKEN_IDX = NUM_TOKENS - 1
 MAX_CAP_LEN = 35
 CHANGE_VOCAB = False
 CHANGE_IMAGES = False
@@ -44,7 +41,8 @@ LEARNING_RATE = .1
 NUM_LSTM_EPOCHS = 1
 USE_PRETRAINED_MODEL = False
 
-SUMMARY_DIRECTORY = "pretrained_models"   # Where to write the graphs of the model running
+SUMMARY_DIRECTORY = "tensorboard_summeries"   # Where to write the graphs of the model running
+USE_PRETRAINED_MODEL = False
 MODEL_PATH = "pretrained_models/model-1.ckpt"
 
 

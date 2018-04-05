@@ -15,6 +15,13 @@ from time import time
 import numpy as np
 from skimage import data
 
+def idx_to_word_translate(idx_matrix, images):
+    idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
+
+    #print(idx_matrix)
+
+    new_caps = [[idx_to_word[idx] for idx in idx_cap] for idx_cap in idx_matrix]
+    print(new_caps)
 
 def getImageBatchFromPickle(pkl, data_directory):
     '''
@@ -59,7 +66,7 @@ def train(filterSize,numFilters,strides,k,eta):
     with tf.Session() as sess:
         model = ImageDecoder()
 
-        loss, summary, images, captions = model.buildModel(filterSize,numFilters,strides,k)
+        loss, summary, pdm, images, captions = model.buildModel(filterSize,numFilters,strides,k)
 
         saver = tf.train.Saver(max_to_keep=50)
 
@@ -86,7 +93,7 @@ def train(filterSize,numFilters,strides,k,eta):
                              captions: caption_data}
                              #m.initial_state = initial_state}
 
-                _, results, loss_result = sess.run([train_op, summary, loss], feed_dict = feed_dict)
+                _, results, loss_result, pred_caps = sess.run([train_op, summary, loss, pdm], feed_dict = feed_dict)
                 
                 # each result is a result per image
                 
@@ -94,7 +101,13 @@ def train(filterSize,numFilters,strides,k,eta):
                 saver.save(sess, config.MODEL_PATH, global_step=epoch)
     
     summ_writer.close()
+
+    idx_to_word_translate(pred_caps, image_data)
+
     return loss_result
+
+
+
 def test(X):
     return "hey"
 

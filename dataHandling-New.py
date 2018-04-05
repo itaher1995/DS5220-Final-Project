@@ -46,7 +46,7 @@ def buildVocab(filePrefix):
     #get unique tokens
     captionDataFrame['caption']=captionDataFrame['caption'].apply(cleanString)
     captionAgg = captionDataFrame.caption.str.cat(sep=' ')
-    frequentTokens = pd.Series(word_tokenize(captionAgg)).value_counts().iloc[:config.NUM_TOKENS]
+    frequentTokens = pd.Series(word_tokenize(captionAgg)).value_counts().iloc[:(config.NUM_TOKENS - 3)]
     #frequentTokens = frequentTokens[~(frequentTokens.index.isin(stopwords.words('english')))]
 
     if config.CHANGE_VOCAB:
@@ -61,6 +61,7 @@ def tokenMap(tokens):
     '''
     tokenList = tokens.index
     tokenMap = {i+1:tokenList[i] for i in range(len(tokens))}
+    tokenMap[0] = "__PAD__"
     tokenMap[config.START_TOKEN_IDX]="__START__"
     tokenMap[config.STOP_TOKEN_IDX]="__STOP__"
 
