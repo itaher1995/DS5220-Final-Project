@@ -33,7 +33,7 @@ class ImageDecoder():
             self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1.0, 1.0), name='embedding_weights')
     
     def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
-        return tf.Variable(tf.truncated_normal([dim_in, dim_out], name=name))
+        return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in)), name=name))
     
     def __INITIALIZEWEIGHTS__(self,shape):
         '''
@@ -170,6 +170,7 @@ class ImageDecoder():
         # Note that these placeholders take in an entire batch of inputs, i.e. 80 images and captions
         images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
         captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 2], name = "input_captions")
+        masks = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 2], name = "input_captions")
         
         # To include later if we want to help training
         # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
@@ -250,7 +251,11 @@ class ImageDecoder():
 
                     # Calculates the loss for the training, performs it in a slightly different manner than paper
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
-                    current_loss = tf.reduce_mean(cross_entropy)
+                    cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
+                    
+
+                    #### Stopped here
+                    current_loss = tf.reduce_sum(cross_entropy)
                     loss = loss + current_loss
                     #print("Loop", i, "Loss", loss)
 
@@ -269,13 +274,13 @@ class ImageDecoder():
         cross_entropies = tf.stack(cross_entropy)
         # Got rid of the masks being divided by
         cross_entropy_loss = tf.reduce_mean(cross_entropies)
-
+        loss = loss / tf.reduce_sum(masks)
         self.loss = loss
         self.cross_entropy_loss = cross_entropy_loss
         self.hidden_state = hidden_state
         print(2)
         summary = self.build_summary()
-        return loss,summary, predicted_caption, images, captions
+        return loss,summary, predicted_caption, images, captions, masks
         
     def test(self):
         return "Incomplete"

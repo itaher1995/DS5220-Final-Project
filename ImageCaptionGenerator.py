@@ -17,11 +17,7 @@ from skimage import data
 
 def idx_to_word_translate(idx_matrix, images):
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
-
-    #print(idx_matrix)
-
     new_caps = [[idx_to_word[idx] for idx in idx_cap] for idx_cap in idx_matrix]
-    print(new_caps)
 
 def getImageBatchFromPickle(pkl, data_directory):
     '''
@@ -33,10 +29,14 @@ def getImageBatchFromPickle(pkl, data_directory):
     df = pd.read_pickle(pkl)
     imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
     imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
-    
+
+    while (len(imageBatch['file_name'].unique()) < config.BATCH_SIZE):
+        imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
+        imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
+
     # Just gets a couple images and captions for testing right now
     image_filenames = list(imageBatch['file_name'])
-    print(image_filenames)
+    #print(image_filenames)
     
     images = []
     captions = []
@@ -48,6 +48,12 @@ def getImageBatchFromPickle(pkl, data_directory):
         captions.append(list(cap_row['mapped_captions'].item()))
     
     return images, captions
+
+def is_nonzero(num):
+    if num > 0:
+        return 1
+    else:
+        return 0
 
 def train(filterSize,numFilters,strides,k,eta):
     '''
@@ -66,13 +72,12 @@ def train(filterSize,numFilters,strides,k,eta):
     with tf.Session() as sess:
         model = ImageDecoder()
 
-        loss, summary, pdm, images, captions = model.buildModel(filterSize,numFilters,strides,k)
+        loss, summary, pdm, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
 
         saver = tf.train.Saver(max_to_keep=50)
 
-        print(1)
         train_op = tf.train.AdamOptimizer(eta).minimize(loss)
-        print(3)
+
         # This is where the number of epochs for the LSTM are controlled
         sess.run(tf.global_variables_initializer())
 
@@ -82,24 +87,31 @@ def train(filterSize,numFilters,strides,k,eta):
 
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
                                                 sess.graph)
-        
-        for batch in range(config.NUM_BATCHES):
-            for epoch in range(config.NUM_LSTM_EPOCHS):
-                image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
-                print(caption_data)
-                print("Image batch size", len(image_data))
-                
-                feed_dict = {images: image_data,
-                             captions: caption_data}
-                             #m.initial_state = initial_state}
+        start = time()
 
-                _, results, loss_result, pred_caps = sess.run([train_op, summary, loss, pdm], feed_dict = feed_dict)
-                
-                # each result is a result per image
-                
-                summ_writer.add_summary(results, epoch)
-                saver.save(sess, config.MODEL_PATH, global_step=epoch)
-    
+        prior_loss = 0
+        for epoch in range(config.NUM_LSTM_EPOCHS):
+            image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+            
+            mask_matrix = [[is_nonzero(idx) for idx in idx_cap] for idx_cap in caption_data]
+
+            feed_dict = {images: image_data,
+                         captions: caption_data,
+                         masks: mask_matrix}
+                         #m.initial_state = initial_state}
+
+            _, results, loss_result, pred_caps = sess.run([train_op, summary, loss, pdm], feed_dict = feed_dict)
+            
+            # each result is a result per image
+            
+            summ_writer.add_summary(results, epoch)
+            saver.save(sess, config.MODEL_PATH, global_step=epoch)
+
+            print("Num epochs", epoch,"   time", round(time() - start))
+            print("Loss", loss_result, "   Prior loss", prior_loss,"   difference", prior_loss - loss_result)
+            print()
+            prior_loss = loss_result
+            
     summ_writer.close()
 
     idx_to_word_translate(pred_caps, image_data)
