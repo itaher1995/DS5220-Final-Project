@@ -6,9 +6,9 @@ import pickle
 # Image height and width for resizing in data_handling.py and inputs in model.py
 
 SUBSET_PERCENT = .1
-IMG_HEIGHT = 28
-IMG_WIDTH = 28
-IMG_SIZE = 28
+IMG_HEIGHT = 100
+IMG_WIDTH = 100
+IMG_SIZE = 100
 
 # CNN Hyper-parameters
 NUM_CHANNELS = 4

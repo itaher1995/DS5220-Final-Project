@@ -35,7 +35,7 @@ class ImageDecoder():
     def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
         return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in)), name=name))
     
-    def __INITIALIZEWEIGHTS__(self,shape):
+    def __INITIALIZEWEIGHTS__(self,shape,name):
         '''
         Helper function to be called in create_conv_layer. This initializes
         random weights for the beginning of our image-caption generation.
@@ -45,23 +45,25 @@ class ImageDecoder():
         
         OUTPUT: Random Weights
         '''
-        return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
+        return tf.Variable(tf.truncated_normal(shape, stddev=0.05),name=name)
     
-    def __INITIALIZEBIAS__(self,length):
+    def __INITIALIZEBIAS__(self,length,name):
         '''
         Helper function to be called in create_conv_layer. This initializes
         random biases for the beginning of image-caption generation.
         
         INPUT: length (a tensor that is the length of the number of filters)
         '''
-        return tf.Variable(tf.constant(0.05, shape=[length]))
+        return tf.Variable(tf.constant(0.05, shape=[length]),name=name)
+    
     
     def createCNNChunk(self,inputLayer,
                           numInputChannels,
                           filterSize,
                           numFilters,
                           strides,
-                          k):
+                          k,
+                          layerNum):
         '''
         Takes in inputs regarding the previous layer, the number of channels,
         the size and number of the filters for convolution and creates a chunk
@@ -75,11 +77,12 @@ class ImageDecoder():
         '''
         #shape list structure determined by TensorFlow API
         shape = [filterSize,filterSize,numInputChannels,numFilters]
-
+        shape1 = [filterSize,filterSize,numFilters,numFilters]
         
         with tf.name_scope("CONV.WeightsAndBiases"):
-            weights = self.__INITIALIZEWEIGHTS__(shape) #creates weights given the shape
-            biases = self.__INITIALIZEBIAS__(length=numFilters) #creates new biases one for each filter
+            weights = self.__INITIALIZEWEIGHTS__(shape,f"Conv.Weights.{layerNum}") #creates weights given the shape
+            weights2 = self.__INITIALIZEWEIGHTS__(shape1,f"Conv.Weights.{layerNum+1}")
+            biases = self.__INITIALIZEBIAS__(length=numFilters,name=f"Conv.Biases.{layerNum}") #creates new biases one for each filter
         
         #convolution layer
         #This convolution step has its input being a previous layer, inputLayer,
@@ -88,31 +91,41 @@ class ImageDecoder():
         #padding= 'SAME' essentially means that the layer with pad a layer
         #of 0s such that it will be equal in dimensions (though I think
         #we handle this already.)
-        with tf.name_scope("CNN_Chunk"):
+        with tf.name_scope(f"CNN_Chunk_{layerNum}"):
             convolution = tf.nn.conv2d(input=inputLayer,
                                  filter=weights,
                                  strides=[1, strides, strides, 1],
-                                 padding='SAME',name="Convolution")
+                                 padding='SAME',name=f"Convolution{layerNum}")
             #add biases to the result of the convolution
             convolution = tf.nn.bias_add(convolution, biases)
             
             convolutionWReLU = tf.nn.relu(convolution)
             
+            convolution2 = tf.nn.conv2d(input=convolutionWReLU,
+                                 filter=weights2,
+                                 strides=[1, strides, strides, 1],
+                                 padding='SAME',name=f"Convolution{layerNum+1}")
+            #add biases to the result of the convolution
+            convolution2 = tf.nn.bias_add(convolution2, biases)
+            
+            convolutionWReLU2 = tf.nn.relu(convolution2)
+        
+            
             #max pooling
             #We compute max pooling so that we can find the most "relevant" features
             #of our images.
-            maxPooling = tf.nn.max_pool(value=convolutionWReLU,
+            maxPooling = tf.nn.max_pool(value=convolutionWReLU2,
                                    ksize=[1, k, k, 1],
                                    strides=[1, k, k, 1],
-                                   padding='SAME',name="Max_Pooling")
+                                   padding='SAME',name=f"Max_Pooling{layerNum}")
             
             #normalization with ReLU, this is to remove any negative values
-            normalized = tf.nn.relu(maxPooling,name="Chunk_Normalization")
+            #normalized = tf.nn.relu(maxPooling,name=f"Chunk_Normalization{layerNum}")
             
             self.conv_weights = weights
             self.conv_biases = biases
 
-            return normalized, weights
+            return maxPooling, weights
     
     def flatten(self,layer):
         '''
@@ -150,8 +163,8 @@ class ImageDecoder():
         
         #initialize new weights and biases
         with tf.name_scope("FULLYCONNECTED.WeightsAndBiases"):
-            weights = self.__INITIALIZEWEIGHTS__(shape=[numInputs, numOutputs])
-            biases = self.__INITIALIZEBIAS__(length=numOutputs)
+            weights = self.__INITIALIZEWEIGHTS__(shape=[numInputs, numOutputs],name='Output.Weights')
+            biases = self.__INITIALIZEBIAS__(length=numOutputs,name='Output.Biases')
         with tf.name_scope("Fully_Connected_Chunk"):
             fullyConnected = tf.matmul(inputLayer,weights, name="Fully_Connected_Layer") + biases
             
@@ -185,7 +198,7 @@ class ImageDecoder():
         with tf.name_scope("Image_Encoder"):
             chunk, weights = self.createCNNChunk(images,config.NUM_CHANNELS,
                                                  filterSize, numFilters,
-                                                 strides, k)
+                                                 strides, k,1)
 
             flattenLayer, numFeatures = self.flatten(chunk)
             cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,
