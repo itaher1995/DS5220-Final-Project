@@ -26,18 +26,26 @@ def train():
     if not os.path.exists(config.SUMMARY_DIRECTORY):
             os.mkdir(config.SUMMARY_DIRECTORY)
 
+    if not os.path.exists('pretrained_models'):
+            os.mkdir('pretrained_models')
+
 
     with tf.Session() as sess:
         model = ImageDecoder()
 
-        #saver = tf.train.Saver(max_to_keep=50)
         loss, summary, images, captions = model.buildModel()
+
+        saver = tf.train.Saver(max_to_keep=50)
 
         print(1)
         train_op = tf.train.AdamOptimizer(config.LEARNING_RATE).minimize(loss)
         print(3)
         # This is where the number of epochs for the LSTM are controlled
         sess.run(tf.global_variables_initializer())
+
+        if config.USE_PRETRAINED_MODEL == True:
+            print("Restoring pretrained model")
+            saver.restore(sess, config.MODEL_PATH)
 
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
                                                 sess.graph)
@@ -51,13 +59,13 @@ def train():
                 feed_dict = {images: image_data,
                              captions: caption_data}
                              #m.initial_state = initial_state}
-                print(4)
+
                 _, results = sess.run([train_op, summary], feed_dict = feed_dict)
                 
                 # each result is a result per image
                 
                 summ_writer.add_summary(results, epoch)
-                #saver.save(sess, os.path.join(confg.MODEL_PATH, 'model'), global_step=epoch)
+                saver.save(sess, config.MODEL_PATH, global_step=epoch)
     
     summ_writer.close()
     

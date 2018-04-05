@@ -180,34 +180,34 @@ class ImageDecoder():
                                                              config.NUM_CNN_OUTPUTS)
         
         #Build RNN
-        with tf.name_scope("Image_Decoder"):
-            with tf.variable_scope(tf.get_variable_scope()) as scope:
+        #with tf.name_scope("Image_Decoder"):
+        with tf.variable_scope(tf.get_variable_scope()) as scope:
 
-                with tf.variable_scope("LSTM"):
-                
-                    # Initialize lstm cell
-                    lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
+            with tf.variable_scope("LSTM"):
+            
+                # Initialize lstm cell
+                lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
 
-                    # BATCH_SIZE x _
-                    prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
-                    print("Prior word:", prior_word.shape)
+                # BATCH_SIZE x _
+                prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
+                print("Prior word:", prior_word.shape)
 
-                    # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
-                    current_input = cnnOutput
-                    print("Current_input", current_input.shape)
+                # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
+                current_input = cnnOutput
+                print("Current_input", current_input.shape)
 
-                    # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
-                    initial_hidden_state = self.hidden_state
-                    initial_current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
+                # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
+                initial_hidden_state = self.hidden_state
+                initial_current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
 
-                    # Needed to start model, tuple of vectors
-                    prior_state = initial_hidden_state, initial_current_state
-                    #prior_state = m.initial_state.eval()
-                
-                predicted_caption = []
-                loss = 0
+                # Needed to start model, tuple of vectors
+                prior_state = initial_hidden_state, initial_current_state
+                #prior_state = m.initial_state.eval()
+            
+            predicted_caption = []
+            loss = 0
 
-                #with tf.variable_scope(tf.get_variable_scope()) as scope:
+            with tf.variable_scope("loss_loop"):
                 # For training, need to loop through all the of possible positions
                 for i in range(config.MAX_CAP_LEN + 2):
                     
@@ -259,11 +259,11 @@ class ImageDecoder():
                     
                     # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
                     tf.get_variable_scope().reuse_variables()
-        
+    
         hidden_state, _ = prior_state
         cross_entropies = tf.stack(cross_entropy)
         # Got rid of the masks being divided by
-        cross_entropy_loss = tf.reduce_sum(cross_entropies)
+        cross_entropy_loss = tf.reduce_mean(cross_entropies)
 
         self.loss = loss
         self.cross_entropy_loss = cross_entropy_loss
@@ -271,7 +271,7 @@ class ImageDecoder():
         print(2)
         summary = self.build_summary()
         return loss,summary, images, captions
-    
+        
     def test(self):
         return "Incomplete"
 
