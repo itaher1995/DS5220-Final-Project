@@ -218,6 +218,7 @@ class ImageDecoder():
             
             predicted_caption = []
             predictions_correct = []
+            cross_entropies = []
             loss = 0
 
             with tf.variable_scope("loss_loop"):
@@ -258,10 +259,8 @@ class ImageDecoder():
 
                     # Calculates the loss for the training, performs it in a slightly different manner than paper
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
-                    cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
-                    current_loss = tf.reduce_sum(cross_entropy)
-                    loss = loss + current_loss
-                    #print("Loop", i, "Loss", loss)
+                    masked_cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
+                    cross_entropies.append(masked_cross_entropy)
 
                     ## need to fix masks i vs captions i - 1, something seems wrong
 
@@ -284,21 +283,19 @@ class ImageDecoder():
                     tf.get_variable_scope().reuse_variables()
     
         hidden_state, _ = prior_state
-        cross_entropies = tf.stack(cross_entropy)
+        cross_entropies = tf.stack(cross_entropies, axis = 1)
         # Got rid of the masks being divided by
-        cross_entropy_loss = tf.reduce_mean(cross_entropies)
-        loss = loss / tf.reduce_sum(tf.cast(masks, tf.float32))
+        cross_entropy_loss = tf.reduce_sum(cross_entropies) / tf.reduce_sum(tf.cast(masks, tf.float32))
 
         predictions_correct = tf.stack(predictions_correct, axis = 1)
         accuracy = tf.reduce_sum(predictions_correct) / tf.reduce_sum(tf.cast(masks, tf.float32))
 
-        self.loss = loss
         self.cross_entropy_loss = cross_entropy_loss
         self.accuracy = accuracy
         self.hidden_state = hidden_state
         print(2)
         summary = self.build_summary()
-        return loss,summary, predicted_caption, images, captions, masks
+        return cross_entropy_loss,summary, predicted_caption, images, captions, masks
         
     def test(self):
         return "Incomplete"
@@ -321,9 +318,9 @@ class ImageDecoder():
 
         with tf.name_scope("RNN_metrics"):
             tf.summary.scalar("cross_entropy_loss", self.cross_entropy_loss)
-            tf.summary.scalar("reg_loss", self.loss)
             tf.summary.scalar("accuracy", self.accuracy)
             tf.summary.histogram("hidden_state", self.hidden_state)
+            tf.summary.histogram("embedding_weights", self.embedding_matrix)
 
         self.summary = tf.summary.merge_all()
         
