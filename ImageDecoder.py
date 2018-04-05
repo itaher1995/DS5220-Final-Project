@@ -109,6 +109,9 @@ class ImageDecoder():
             #normalization with ReLU, this is to remove any negative values
             normalized = tf.nn.relu(maxPooling,name="Chunk_Normalization")
             
+            self.conv_weights = weights
+            self.conv_biases = biases
+
             return normalized, weights
     
     def flatten(self,layer):
@@ -154,7 +157,10 @@ class ImageDecoder():
             
             #normalize fully connected layer
             normFullConnected = tf.nn.relu(fullyConnected,name="Normalization_Fully_Connected_Layer")
-        
+            
+            self.cnn_output_weights = weights
+            self.cnn_output_biases = biases
+
         return normFullConnected
     
     def buildModel(self,filterSize,
@@ -180,7 +186,7 @@ class ImageDecoder():
             chunk, weights = self.createCNNChunk(images,config.NUM_CHANNELS,
                                                  filterSize, numFilters,
                                                  strides, k)
-            
+
             flattenLayer, numFeatures = self.flatten(chunk)
             cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,
                                                              config.NUM_CNN_OUTPUTS)
@@ -211,6 +217,7 @@ class ImageDecoder():
                 #prior_state = m.initial_state.eval()
             
             predicted_caption = []
+            predictions_correct = []
             loss = 0
 
             with tf.variable_scope("loss_loop"):
@@ -252,16 +259,22 @@ class ImageDecoder():
                     # Calculates the loss for the training, performs it in a slightly different manner than paper
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
                     cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
-                    
-
-                    #### Stopped here
                     current_loss = tf.reduce_sum(cross_entropy)
                     loss = loss + current_loss
                     #print("Loop", i, "Loss", loss)
 
-                    predicted_word = tf.argmax(p_t, 1)
+                    ## need to fix masks i vs captions i - 1, something seems wrong
 
+                    predicted_word = tf.argmax(p_t, 1)
                     predicted_caption.append(predicted_word)
+
+                    # Used to calculate accuracy
+                    ground_truth = tf.cast(captions[:, i-1], tf.int64)
+                    prediction_correct = tf.where(
+                        tf.equal(predicted_word, ground_truth),
+                        tf.cast(masks[:, i], tf.float32),
+                        tf.cast(tf.zeros_like(predicted_word), tf.float32))
+                    predictions_correct.append(prediction_correct)
 
                     prior_word = captions[:, i-1]
                     prior_state = state
@@ -274,9 +287,14 @@ class ImageDecoder():
         cross_entropies = tf.stack(cross_entropy)
         # Got rid of the masks being divided by
         cross_entropy_loss = tf.reduce_mean(cross_entropies)
-        loss = loss / tf.reduce_sum(masks)
+        loss = loss / tf.reduce_sum(tf.cast(masks, tf.float32))
+
+        predictions_correct = tf.stack(predictions_correct, axis = 1)
+        accuracy = tf.reduce_sum(predictions_correct) / tf.reduce_sum(tf.cast(masks, tf.float32))
+
         self.loss = loss
         self.cross_entropy_loss = cross_entropy_loss
+        self.accuracy = accuracy
         self.hidden_state = hidden_state
         print(2)
         summary = self.build_summary()
@@ -289,17 +307,26 @@ class ImageDecoder():
 
     def build_summary(self):
         """ Build the summary (for TensorBoard visualization). """
-        """
+        
         with tf.name_scope("variables"):
             for var in tf.trainable_variables():
                 with tf.name_scope(var.name[:var.name.find(":")]):
                     self.variable_summary(var)
-        """
-        with tf.name_scope("metrics"):
+        
+        with tf.name_scope("CNN_metrics"):
+            tf.summary.histogram("Convolution_weights", self.conv_weights)
+            tf.summary.histogram("Bias_weights", self.conv_biases)
+            tf.summary.histogram("cnn_output_weights", self.cnn_output_weights)
+            tf.summary.histogram("cnn_output_biases", self.cnn_output_biases)
+
+        with tf.name_scope("RNN_metrics"):
             tf.summary.scalar("cross_entropy_loss", self.cross_entropy_loss)
             tf.summary.scalar("reg_loss", self.loss)
+            tf.summary.scalar("accuracy", self.accuracy)
+            tf.summary.histogram("hidden_state", self.hidden_state)
 
         self.summary = tf.summary.merge_all()
+        
         return tf.summary.merge_all()
 
     def variable_summary(self, var):
