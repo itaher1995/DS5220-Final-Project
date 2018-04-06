@@ -70,9 +70,10 @@ def train(filterSize,numFilters,strides,k,eta):
 
 
     with tf.Session() as sess:
+        #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
         model = ImageDecoder()
-
         loss, summary, pdm, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
+        #loss, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
 
         saver = tf.train.Saver(max_to_keep=50)
 
@@ -101,7 +102,8 @@ def train(filterSize,numFilters,strides,k,eta):
                          #m.initial_state = initial_state}
 
             _, results, loss_result, pred_caps = sess.run([train_op, summary, loss, pdm], feed_dict = feed_dict)
-            
+            #_, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
+
             # each result is a result per image
             
             summ_writer.add_summary(results, epoch)
@@ -114,14 +116,53 @@ def train(filterSize,numFilters,strides,k,eta):
             
     summ_writer.close()
 
-    idx_to_word_translate(pred_caps, image_data)
+    #idx_to_word_translate(pred_caps, image_data)
 
     return loss_result
 
 
 
 def test(X):
-    return "hey"
+    tf.reset_default_graph()
+
+    # Allows us to save training sessions
+    if not os.path.exists(config.SUMMARY_DIRECTORY):
+            os.mkdir(config.SUMMARY_DIRECTORY)
+
+    if not os.path.exists('pretrained_models'):
+            os.mkdir('pretrained_models')
+
+
+    with tf.Session() as sess:
+        #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
+        model = ImageDecoder()
+        pdm, images, captions, masks = model.test(filterSize,numFilters,strides,k)
+        #loss, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
+
+        saver = tf.train.Saver(max_to_keep=50)
+
+
+        # This is where the number of epochs for the LSTM are controlled
+        sess.run(tf.global_variables_initializer())
+
+        if config.USE_PRETRAINED_MODEL == True:
+            print("Restoring pretrained model")
+            saver.restore(sess, config.MODEL_PATH)
+
+        start = time()
+
+        image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+            
+
+        feed_dict = {images: image_data}
+
+        pred_caps = sess.run([pdm], feed_dict = feed_dict)
+        
+        saver.save(sess, config.MODEL_PATH, global_step=epoch)
+            
+        summ_writer.close()
+
+        idx_to_word_translate(pred_caps, image_data)
 
 def gridSearch(filterSize,numFilters,strides,k,eta):
     '''
