@@ -62,6 +62,163 @@ class ImageDecoder():
         '''
         return tf.Variable(tf.constant(0.05, shape=[length]),name=name)
     
+    def createAlexNetChunk1(self, inputLayer,
+                            numInputChannels,
+                            filterSize,
+                            numFilters,
+                            strides,
+                            k,
+                            layerNum,
+                            gamma=1,
+                            beta=1,
+                            epsilon=10**-3,
+                            batchNorm=True,
+                            LRN=False):
+        '''
+        Creates the first "chunk" in the AlexNet architecture. The chunk is as
+        follows:
+            Conv -> ReLU -> BatchNorm -> MaxPooling
+        
+        In the AlexNet architecture normalization is often completed with LRM
+        after MaxPooling; however, research suggests that batch normalization 
+        is a more efficient process. Either case we will default the
+        AlexNetChunk to have batch normalization.
+        '''
+        
+        shape = [filterSize,filterSize,numInputChannels,numFilters]
+        
+        with tf.name_scope(f"Chunk_{layerNum}_WeightsBiases"):
+            weights = self.__INITIALIZEWEIGHTS__(shape,f"Conv.Weights.{layerNum}_1")
+            biases = self.__INITIALIZEBIAS__(length=numFilters,name=f"Conv.Biases.{layerNum}_1")
+        
+        with tf.name_scope(f"AlexNet_Chunk_{layerNum}"):
+            convolution = tf.nn.conv2d(input=inputLayer,
+                                 filter=weights,
+                                 strides=[1, strides, strides, 1],
+                                 padding='SAME',name=f"Convolution_{layerNum}_1")
+            #add biases to the result of the convolution
+            convolution = tf.nn.bias_add(convolution, biases)
+            if batchNorm==True: #based on research
+                
+                uConv = tf.reduce_mean(convolution)
+                varConv = tf.reduce_mean(tf.multiply(tf.subtract(convolution,uConv),tf.subtract(convolution,uConv)))
+                convolution = tf.nn.batch_normalization(convolution,
+                                                        mean=uConv,
+                                                        variance=varConv,
+                                                        offset=beta,
+                                                        scale=gamma,
+                                                        variance_epsilon=epsilon,
+                                                        name=f"BatchNorm_{layerNum}")
+            
+            convolutionWReLU = tf.nn.relu(convolution,name=f"ReLU_{layerNum}")
+            
+             #max pooling
+            #We compute max pooling so that we can find the most "relevant" features
+            #of our images.
+            chunkLastLayer = tf.nn.max_pool(value=convolutionWReLU,
+                                   ksize=[1, k, k, 1],
+                                   strides=[1, k, k, 1],
+                                   padding='SAME',name=f"Max_Pooling_{layerNum}")
+            
+            #Another type of normalization, follows AlexNet
+            if LRN==True:
+                chunkLastLayer = tf.nn.lrn(chunkLastLayer)
+            
+            if layerNum==1:  
+                self.conv_weights1_1 = weights
+                self.conv_biases1_1 = biases
+            if layerNum==2:
+                self.conv_weights2_1 = weights
+                self.conv_biases2_1 = biases
+
+            return chunkLastLayer, weights
+        
+    def createAlexNetChunk2(self, inputLayer,
+                        numInputChannels,
+                        filterSize,
+                        numFilters,
+                        strides,
+                        layerNum):
+        '''
+        Creates the second type of "chunk" in the AlexNet architecture. The chunk is as
+        follows:
+            Conv -> ReLU
+        
+        In the AlexNet architecture normalization is often completed with LRM;
+        however research suggests that batch normalization is a more efficient
+        process. Either case we will default the AlexNetChunk to have batch
+        normalization.
+        '''
+        
+        shape = [filterSize,filterSize,numInputChannels,numFilters]
+        
+        with tf.name_scope(f"Chunk_{layerNum}_WeightsBiases"):
+            weights = self.__INITIALIZEWEIGHTS__(shape,f"Conv.Weights.{layerNum}_1")
+            biases = self.__INITIALIZEBIAS__(length=numFilters,name=f"Conv.Biases.{layerNum}_1")
+        
+        with tf.name_scope(f"AlexNet_Chunk_{layerNum}"):
+            convolution = tf.nn.conv2d(input=inputLayer,
+                                 filter=weights,
+                                 strides=[1, strides, strides, 1],
+                                 padding='SAME',name=f"Convolution_{layerNum}_1")
+        #add biases to the result of the convolution
+        convolution = tf.nn.bias_add(convolution, biases)
+        convolutionWReLU = tf.nn.relu(convolution,name=f"ReLU_{layerNum}")
+        
+        if layerNum==3:
+            self.conv_weights3_1 = weights
+            self.conv_biases3_1 = biases
+        
+        if layerNum==4:
+            self.conv_weights4_1 = weights
+            self.conv_biases4_1 = biases
+        
+        return convolutionWReLU, weights
+            
+    def createAlexNetChunk3(self, inputLayer,
+                        numInputChannels,
+                        filterSize,
+                        numFilters,
+                        strides,
+                        k,
+                        layerNum):
+        '''
+        Creates the second type of "chunk" in the AlexNet architecture. The chunk is as
+        follows:
+            Conv -> ReLU
+        
+        In the AlexNet architecture normalization is often completed with LRM;
+        however research suggests that batch normalization is a more efficient
+        process. Either case we will default the AlexNetChunk to have batch
+        normalization.
+        '''
+        
+        shape = [filterSize,filterSize,numInputChannels,numFilters]
+        
+        with tf.name_scope(f"Chunk_{layerNum}_WeightsBiases"):
+            weights = self.__INITIALIZEWEIGHTS__(shape,f"Conv.Weights.{layerNum}_1")
+            biases = self.__INITIALIZEBIAS__(length=numFilters,name=f"Conv.Biases.{layerNum}_1")
+        
+        with tf.name_scope(f"AlexNet_Chunk_{layerNum}"):
+            convolution = tf.nn.conv2d(input=inputLayer,
+                                 filter=weights,
+                                 strides=[1, strides, strides, 1],
+                                 padding='SAME',name=f"Convolution_{layerNum}_1")
+        #add biases to the result of the convolution
+        convolution = tf.nn.bias_add(convolution, biases)
+        convolutionWReLU = tf.nn.relu(convolution,name=f"ReLU_{layerNum}")
+        
+        chunkLastLayer = tf.nn.max_pool(value=convolutionWReLU,
+                                   ksize=[1, k, k, 1],
+                                   strides=[1, k, k, 1],
+                                   padding='SAME',name=f"Max_Pooling_{layerNum}")
+        
+        if layerNum==5:
+            self.conv_weights5_1 = weights
+            self.conv_biases5_1 = biases
+        
+        
+        return chunkLastLayer, weights
     
     def createCNNChunk(self,inputLayer,
                           numInputChannels,
@@ -186,7 +343,8 @@ class ImageDecoder():
     def buildModel(self,filterSize,
                           numFilters,
                           strides,
-                          k):
+                          k,
+                          layerNorm = False):
         '''
         Builds the LSTM and CNN and links them together.
         '''
@@ -204,11 +362,28 @@ class ImageDecoder():
         
         # Build CNN
         with tf.name_scope("Image_Encoder"):
-            chunk, weights = self.createCNNChunk(images,config.NUM_CHANNELS,
+            chunk, weights = self.createAlexNetChunk1(images,config.NUM_CHANNELS,
                                                  filterSize, numFilters,
                                                  strides, k,1)
+            
+            chunk2, weights2 = self.createAlexNetChunk1(chunk,numFilters,
+                                                 filterSize, numFilters,
+                                                 strides, k,2)
+            
+            chunk3, weights3 = self.createAlexNetChunk2(chunk2,numFilters,
+                                                 filterSize, numFilters,
+                                                 strides,3)
+            
+            chunk4, weights4 = self.createAlexNetChunk2(chunk3,numFilters,
+                                                 filterSize, numFilters,
+                                                 strides,4)
+            
+            chunk5, weights5 = self.createAlexNetChunk2(chunk4,numFilters,
+                                                 filterSize, numFilters,
+                                                 strides,5)
+            
 
-            flattenLayer, numFeatures = self.flatten(chunk)
+            flattenLayer, numFeatures = self.flatten(chunk5)
             cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,
                                                              config.NUM_CNN_OUTPUTS)
         #cnnOutput = 
@@ -220,7 +395,10 @@ class ImageDecoder():
             with tf.variable_scope("LSTM"):
             
                 # Initialize lstm cell
-                lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
+                if layerNorm:
+                    lstm=tf.contrib.rnn.LayerNormLSTMCell(config.NUM_LSTM_UNITS)
+                else:
+                    lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
 
                 # BATCH_SIZE x _
                 prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
@@ -282,7 +460,7 @@ class ImageDecoder():
                     # Calculates the loss for the training, performs it in a slightly different manner than paper
                     logit_words = tf.matmul(output, self.embed_word_W) + self.embed_word_b # (batch_size, n_words)
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logit_words, labels = captions[:,i])
-                    masked_cross_entropy = cross_entropy #* tf.cast(masks[:, i], tf.float32)
+                    masked_cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
                     cross_entropies.append(masked_cross_entropy)
 
                     ## need to fix masks i vs captions i - 1, something seems wrong
@@ -334,8 +512,8 @@ class ImageDecoder():
                     self.variable_summary(var)
         
         with tf.name_scope("CNN_metrics"):
-            tf.summary.histogram("Convolution_weights", self.conv_weights)
-            tf.summary.histogram("Bias_weights", self.conv_biases)
+            tf.summary.histogram("Convolution_weights", self.conv_weights1_1)
+            tf.summary.histogram("Bias_weights", self.conv_biases1_1)
             tf.summary.histogram("cnn_output_weights", self.cnn_output_weights)
             tf.summary.histogram("cnn_output_biases", self.cnn_output_biases)
 
