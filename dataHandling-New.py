@@ -61,7 +61,7 @@ def tokenMap(tokens):
     '''
     tokenList = tokens.index
     tokenMap = {i+1:tokenList[i] for i in range(len(tokens))}
-    tokenMap[0] = "__PAD__"
+    tokenMap[config.PAD_TOKEN_IDX] = "__PAD__"
     tokenMap[config.START_TOKEN_IDX]="__START__"
     tokenMap[config.STOP_TOKEN_IDX]="__STOP__"
 
@@ -107,7 +107,7 @@ def padder(sentance):
     num_pad = config.MAX_CAP_LEN + 2 - len(sentance)
     print(num_pad)
     # Pads strings with zero's. Accounted for this when we mapped the word idx's starting at 1
-    padded_sentance = np.pad(sentance, (0,num_pad), 'constant', constant_values = (0,0))
+    padded_sentance = np.pad(sentance, (0,num_pad), 'constant', constant_values = (0,config.PAD_TOKEN_IDX))
     
     return padded_sentance
 
