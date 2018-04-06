@@ -2,20 +2,22 @@
 
 ## Important Work to be Done:
 
-### 1. Create Grid Search for CV
+### 1. Image Preprocessing
 
-Blocked by lack of model
+### 2. Beam Search
 
-### 2. Save Analysis that we need
-
-### 3. Run it
-
-### 4. BLEU score integration
+### 3. BLEU score integration
 
 Currently have code that works. Will need to check if it still works once we can get captions loaded.
 
-### 5. COCO API
+### 4. Create Grid Search for CV
 
-Not really sure what we were looking at for this.
+Done, kinda tested
+
+### 5. Save Analysis that we need
+
+### 6. Run Model
+
+
 
 
