@@ -30,11 +30,17 @@ class ImageDecoder():
     def __init__(self):
         with tf.device("/cpu:0"):
             self.hidden_state = self.init_weight(config.BATCH_SIZE, config.NUM_LSTM_UNITS, name = "global_hidden_state")
-            self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1.0, 1.0), name='embedding_weights')
+            self.encode_img_W = tf.Variable(tf.random_uniform([config.BATCH_SIZE, config.DIM_EMBEDDING], -0.1, 0.1), name='encode_img_W')
+            self.encode_img_b = self.init_bias(config.DIM_EMBEDDING, name='encode_img_b')
+            self.embed_word_W = tf.Variable(tf.random_uniform([config.DIM_EMBEDDING, config.NUM_TOKENS], -0.1, 0.1), name='embed_word_W')
+            self.embed_word_b = self.init_bias(config.NUM_TOKENS, name='embed_word_b')
+            self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1,0, 1.0), name='embedding_weights')
     
     def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
-        return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in)), name=name))
-    
+        return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in)), name=name), trainable = True)
+    def init_bias(self, dim_out, name=None):
+        return tf.Variable(tf.zeros([dim_out]), name=name)
+
     def __INITIALIZEWEIGHTS__(self,shape,name):
         '''
         Helper function to be called in create_conv_layer. This initializes
@@ -167,10 +173,11 @@ class ImageDecoder():
             biases = self.__INITIALIZEBIAS__(length=numOutputs,name='Output.Biases')
         with tf.name_scope("Fully_Connected_Chunk"):
             fullyConnected = tf.matmul(inputLayer,weights, name="Fully_Connected_Layer") + biases
-            
+            print(fullyConnected.shape)
             #normalize fully connected layer
             normFullConnected = tf.nn.relu(fullyConnected,name="Normalization_Fully_Connected_Layer")
             
+            print(normFullConnected.shape)
             self.cnn_output_weights = weights
             self.cnn_output_biases = biases
 
@@ -191,8 +198,9 @@ class ImageDecoder():
         captions = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 2], name = "input_captions")
         masks = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN + 2], name = "input_captions")
         
-        # To include later if we want to help training
-        # mask = tf.placeholder(dtype = tf.int32, shape = [config.BATCH_SIZE, config.MAX_CAP_LEN])
+        #images = tf.map_fn(lambda image: tf.image.per_image_standardization(image), images)
+
+
         
         # Build CNN
         with tf.name_scope("Image_Encoder"):
@@ -203,7 +211,8 @@ class ImageDecoder():
             flattenLayer, numFeatures = self.flatten(chunk)
             cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,
                                                              config.NUM_CNN_OUTPUTS)
-        
+        #cnnOutput = 
+        #tf.matmul(cnnOutput, self.encode_img_W) + self.encode_img_b
         #Build RNN
         #with tf.name_scope("Image_Decoder"):
         with tf.variable_scope(tf.get_variable_scope()) as scope:
@@ -261,23 +270,24 @@ class ImageDecoder():
 
                         _, current_state = state
                     
-                    with tf.variable_scope("lstm_output"):
+                    #with tf.variable_scope("lstm_output"):
                         # BATCH_SIZE x NUM_LSTM_UNITS
-                        m_t = tf.multiply(output, current_state)
+                        #m_t = tf.multiply(output, current_state)
 
                         #logits = 
 
                         # BATCH_SIZE x NUM_LSTM_UNITS
-                        p_t = tf.nn.softmax(m_t, name = "word_probabilities")
+                        #p_t = tf.nn.softmax(m_t, name = "word_probabilities")
 
                     # Calculates the loss for the training, performs it in a slightly different manner than paper
-                    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = p_t, labels = captions[:,i])
-                    masked_cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
+                    logit_words = tf.matmul(output, self.embed_word_W) + self.embed_word_b # (batch_size, n_words)
+                    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logit_words, labels = captions[:,i])
+                    masked_cross_entropy = cross_entropy #* tf.cast(masks[:, i], tf.float32)
                     cross_entropies.append(masked_cross_entropy)
 
                     ## need to fix masks i vs captions i - 1, something seems wrong
 
-                    predicted_word = tf.argmax(p_t, 1)
+                    predicted_word = tf.argmax(logit_words, 1)
                     predicted_caption.append(predicted_word)
 
                     # Used to calculate accuracy
@@ -306,7 +316,7 @@ class ImageDecoder():
         self.cross_entropy_loss = cross_entropy_loss
         self.accuracy = accuracy
         self.hidden_state = hidden_state
-        print(2)
+        
         summary = self.build_summary()
         return cross_entropy_loss,summary, predicted_caption, images, captions, masks
         
