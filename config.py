@@ -46,7 +46,7 @@ STOP_TOKEN_IDX = NUM_TOKENS - 1
 MAX_CAP_LEN = 35
 CHANGE_VOCAB = False
 CHANGE_IMAGES = False
-BATCH_SIZE = 50  # Of images and sentances sent into model
+BATCH_SIZE = 100  # Of images and sentances sent into model
 NUM_BATCHES = 5
 
 NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
@@ -59,7 +59,7 @@ NUM_LSTM_UNITS = NUM_CNN_OUTPUTS
 DIM_EMBEDDING = NUM_CNN_OUTPUTS # Need to set this for embedding_matrix
 
 LEARNING_RATE = .001
-NUM_LSTM_EPOCHS = 100
+NUM_LSTM_EPOCHS = 200
 USE_PRETRAINED_MODEL = False
 
 SUMMARY_DIRECTORY = "tensorboard_summeries"   # Where to write the graphs of the model running
