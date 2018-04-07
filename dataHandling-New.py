@@ -10,7 +10,6 @@ import numpy as np
 from time import time
 from skimage import data, transform
 import tensorflow as tf
-import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
 from string import punctuation
 from collections import Counter
