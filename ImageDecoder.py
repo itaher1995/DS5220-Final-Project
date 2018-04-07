@@ -35,6 +35,8 @@ class ImageDecoder():
             self.embed_word_W = tf.Variable(tf.random_uniform([config.DIM_EMBEDDING, config.NUM_TOKENS], -0.1, 0.1), name='embed_word_W')
             self.embed_word_b = self.init_bias(config.NUM_TOKENS, name='embed_word_b')
             self.embedding_matrix = tf.Variable(tf.random_uniform([config.NUM_TOKENS, config.DIM_EMBEDDING], -1,0, 1.0), name='embedding_weights')
+            self.bemb = self.init_bias(config.DIM_EMBEDDING, name='bemb')
+
     
     def init_weight(self, dim_in, dim_out, name=None, stddev=1.0):
         return tf.Variable(tf.truncated_normal([dim_in, dim_out], stddev=stddev/math.sqrt(float(dim_in)), name=name), trainable = True)
@@ -401,10 +403,10 @@ class ImageDecoder():
             with tf.variable_scope("LSTM"):
             
                 # Initialize lstm cell
-                if layerNorm:
-                    lstm=tf.contrib.rnn.LayerNormLSTMCell(config.NUM_LSTM_UNITS)
-                else:
-                    lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
+                #if layerNorm:
+                #    lstm=tf.contrib.rnn.LayerNormLSTMCell(config.NUM_LSTM_UNITS)
+                #else:
+                lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
 
                 # BATCH_SIZE x _
                 prior_word = tf.zeros([config.BATCH_SIZE], tf.int32)
@@ -438,16 +440,16 @@ class ImageDecoder():
                                                on_value = 1, off_value = 0,
                                                name = "onehot_labels")
                     #print("onehot:", onehot_labels.shape)
-
+                    
                     if i != 0:
                         with tf.variable_scope("word_embedding"):
                             # Can't be run on a gpu for some reason
                             with tf.device("/cpu:0"):
                                 # Accounts for the one_hot vector
                                 # BATCH_SIZE x NUM_TOKENS matrix
-                                prior_word_probs = tf.nn.embedding_lookup(self.embedding_matrix, prior_word)
+                                prior_word_probs = tf.nn.embedding_lookup(self.embedding_matrix, prior_word) + self.bemb
                             current_input = tf.multiply(prior_word_probs, tf.cast(onehot_labels, tf.float32))
-                    
+        
                     with tf.variable_scope("lstm_function"):
                         # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
                         output, state = lstm(current_input, prior_state)
@@ -504,8 +506,105 @@ class ImageDecoder():
         summary = self.build_summary()
         return cross_entropy_loss,summary, predicted_caption, images, captions, masks
         
-    def test(self):
-        return "Incomplete"
+
+    def test(self,filterSize_1,
+                          numFilters_1,
+                          filterSize_2,
+                          numFilters_2,
+                          filterSize_34,
+                          numFilters_34,
+                          filterSize_5,
+                          numFilters_5,
+                          strides,
+                          k,
+                          layerNorm = False):
+
+        images = tf.placeholder(dtype = tf.float32, shape = [None, config.IMG_HEIGHT, config.IMG_WIDTH, 4], name = "image_input")
+        
+        # Build CNN
+        with tf.name_scope("Image_Encoder"):
+            chunk, weights = self.createAlexNetChunk1(images,config.NUM_CHANNELS,
+                                                 filterSize_1, numFilters_1,
+                                                 strides, k,1)
+            
+            chunk2, weights2 = self.createAlexNetChunk1(chunk,numFilters_1,
+                                                 filterSize_2, numFilters_2,
+                                                 strides, k,2)
+            
+            chunk3, weights3 = self.createAlexNetChunk2(chunk2,numFilters_2,
+                                                 filterSize_34, numFilters_34,
+                                                 strides,3)
+            
+            chunk4, weights4 = self.createAlexNetChunk2(chunk3,numFilters_34,
+                                                 filterSize_34, numFilters_34,
+                                                 strides,4)
+            
+            chunk5, weights5 = self.createAlexNetChunk2(chunk4,numFilters_34,
+                                                 filterSize_5, numFilters_5,
+                                                 strides,5)
+            
+
+            flattenLayer, numFeatures = self.flatten(chunk5)
+            cnnOutput = self.fullyConnectedComponent(flattenLayer, numFeatures,
+                                                             config.NUM_CNN_OUTPUTS)
+        
+        #with tf.name_scope("Image_Decoder"):
+        with tf.variable_scope(tf.get_variable_scope()) as scope:
+
+            with tf.variable_scope("LSTM"):
+            
+                # Initialize lstm cell
+                lstm = tf.contrib.rnn.LayerNormBasicLSTMCell(config.NUM_LSTM_UNITS)
+
+                # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
+                current_input = cnnOutput
+                print("Current_input", current_input.shape)
+
+                # The hidden state corresponds the the cnn inputs, both are BATCH_SIZE x NUM_LSTM_UNITS vectors
+                initial_hidden_state = self.hidden_state
+                initial_current_state = tf.zeros([config.BATCH_SIZE, config.NUM_LSTM_UNITS])
+
+                # Needed to start model, tuple of vectors
+                prior_state = initial_hidden_state, initial_current_state
+                #prior_state = m.initial_state.eval()
+            
+            output, state = lstm(current_input, prior_state)
+            with tf.device("/cpu:0"):
+                    # Accounts for the one_hot vector
+                    # BATCH_SIZE x NUM_TOKENS matrix
+                    current_input = tf.nn.embedding_lookup(self.embedding_matrix, tf.cast(tf.zeros(config.BATCH_SIZE), tf.int32)) #+ self.bemb
+            print("cur i",current_input.shape)
+            predicted_caption = []
+            predictions_correct = []
+
+            
+            # For training, need to loop through all the of possible positions
+            for i in range(config.MAX_CAP_LEN + 2):
+                tf.get_variable_scope().reuse_variables()
+
+                with tf.variable_scope("lstm_function"):
+                    # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
+                    output, state = lstm(current_input, prior_state)
+                
+                # Calculates the loss for the training, performs it in a slightly different manner than paper
+                logit_words = tf.matmul(output, self.embed_word_W) + self.embed_word_b # (batch_size, n_words)
+
+                predicted_word = tf.argmax(logit_words, 1)
+
+                with tf.device("/cpu:0"):
+                    # Accounts for the one_hot vector
+                    # BATCH_SIZE x NUM_TOKENS matrix
+                    current_input = tf.nn.embedding_lookup(self.embedding_matrix, predicted_word)
+                
+                current_input += self.bemb
+
+                predicted_caption.append(predicted_word)
+                
+                # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
+    
+        hidden_state, _ = prior_state
+
+        return predicted_caption, images
 
 
 

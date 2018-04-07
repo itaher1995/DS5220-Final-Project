@@ -50,7 +50,7 @@ def getImageBatchFromPickle(pkl, data_directory):
     return images, captions
 
 def is_nonzero(num):
-    if num > 0:
+    if num != 3003:
         return 1
     else:
         return 0
@@ -70,7 +70,6 @@ def train(filterSize_1,
     NOTE: will eventually read in data.
     '''
     tf.reset_default_graph()
-
     # Allows us to save training sessions
     if not os.path.exists(config.SUMMARY_DIRECTORY):
             os.mkdir(config.SUMMARY_DIRECTORY)
@@ -78,6 +77,15 @@ def train(filterSize_1,
     if not os.path.exists('pretrained_models'):
             os.mkdir('pretrained_models')
 
+    # Creates path for new model directory according to the parameters being searched
+    hyperparameters = [filterSize_1,numFilters_1,filterSize_2,numFilters_2,filterSize_34,numFilters_34,
+        filterSize_5,numFilters_5,strides,k,eta]
+    hyperparameters = [str(hp) for hp in hyperparameters]
+    model_name = "-".join(hyperparameters)
+    model_dir = "pretrained_models" +"/"+ model_name
+    if not os.path.exists(model_dir):
+            os.mkdir(model_dir)
+    model_path = model_dir + "/" + model_name
 
     with tf.Session() as sess:
         #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
@@ -94,16 +102,16 @@ def train(filterSize_1,
                                                                         k)
         #loss, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
 
-        saver = tf.train.Saver(max_to_keep=50)
+        saver = tf.train.Saver(max_to_keep=5)
 
         train_op = tf.train.AdamOptimizer(eta).minimize(loss)
-
+        
         # This is where the number of epochs for the LSTM are controlled
         sess.run(tf.global_variables_initializer())
-
+        
         if config.USE_PRETRAINED_MODEL == True:
             print("Restoring pretrained model")
-            saver.restore(sess, config.MODEL_PATH)
+            saver.restore(sess, model_path)
 
         summ_writer = tf.summary.FileWriter(config.SUMMARY_DIRECTORY,
                                                 sess.graph)
@@ -122,65 +130,65 @@ def train(filterSize_1,
 
             _, results, loss_result, pred_caps = sess.run([train_op, summary, loss, pdm], feed_dict = feed_dict)
             #_, loss_result = sess.run([train_op, loss], feed_dict = feed_dict)
-
             # each result is a result per image
             
             summ_writer.add_summary(results, epoch)
-            saver.save(sess, config.MODEL_PATH, global_step=epoch)
+            if not epoch % 10:
+                saver.save(sess, model_path)#, global_step=epoch)#, write_meta_graph=False)
 
             print("Num epochs", epoch,"   time", round(time() - start))
             print("Loss", loss_result, "   Prior loss", prior_loss,"   difference", prior_loss - loss_result)
             print()
             prior_loss = loss_result
-            
-    summ_writer.close()
+    
+        saver.save(sess, model_path)
+        summ_writer.close()
 
-    #idx_to_word_translate(pred_caps, image_data)
+        #idx_to_word_translate(pred_caps, image_data)
 
     return loss_result
 
 
 
-def test(X):
+def test(filterSize_1,
+        numFilters_1,
+        filterSize_2,
+        numFilters_2,
+        filterSize_34,
+        numFilters_34,
+        filterSize_5,
+        numFilters_5,
+        strides,
+        k,
+        eta):
+
     tf.reset_default_graph()
 
-    # Allows us to save training sessions
-    if not os.path.exists(config.SUMMARY_DIRECTORY):
-            os.mkdir(config.SUMMARY_DIRECTORY)
-
-    if not os.path.exists('pretrained_models'):
-            os.mkdir('pretrained_models')
-
+    hyperparameters = [filterSize_1,numFilters_1,filterSize_2,numFilters_2,filterSize_34,numFilters_34,
+        filterSize_5,numFilters_5,strides,k,eta]
+    hyperparameters = [str(hp) for hp in hyperparameters]
+    model_name = "-".join(hyperparameters)
+    model_path = "pretrained_models" +"/"+ model_name + "/" + model_name
 
     with tf.Session() as sess:
         #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
         model = ImageDecoder()
-        pdm, images, captions, masks = model.test(filterSize,numFilters,strides,k)
-        #loss, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
+        pdm, images = model.test(filterSize_1,numFilters_1, filterSize_2,numFilters_2,
+            filterSize_34,numFilters_34,filterSize_5,numFilters_5,strides,k)
 
-        saver = tf.train.Saver(max_to_keep=50)
+        
+        #saver = tf.train.import_meta_graph(model_path + ".meta")
+        #saver.restore(sess,tf.train.latest_checkpoint('./'))
+        
 
-
-        # This is where the number of epochs for the LSTM are controlled
-        sess.run(tf.global_variables_initializer())
-
-        if config.USE_PRETRAINED_MODEL == True:
-            print("Restoring pretrained model")
-            saver.restore(sess, config.MODEL_PATH)
-
-        start = time()
-
+        saver = tf.train.Saver()
+        saver.restore(sess,model_path)
+        print("var" % embed_word_W.eval())
+        # Will need to change for validation
         image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
-            
-
         feed_dict = {images: image_data}
-
         pred_caps = sess.run([pdm], feed_dict = feed_dict)
         
-        saver.save(sess, config.MODEL_PATH, global_step=epoch)
-            
-        summ_writer.close()
-
         idx_to_word_translate(pred_caps, image_data)
 
 def gridSearch(filterSize,numFilters,strides,k,eta):
