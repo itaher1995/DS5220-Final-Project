@@ -14,10 +14,13 @@ import os
 from time import time
 import numpy as np
 from skimage import data
+from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 
 def idx_to_word_translate(idx_matrix, images):
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
-    new_caps = [[idx_to_word[idx] for idx in idx_cap] for idx_cap in idx_matrix]
+    #print(type(idx_to_word))
+    new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix[0]]).T
+    print(new_caps)
 
 def getImageBatchFromPickle(pkl, data_directory):
     '''
@@ -168,22 +171,26 @@ def test(filterSize_1,
         filterSize_5,numFilters_5,strides,k,eta]
     hyperparameters = [str(hp) for hp in hyperparameters]
     model_name = "-".join(hyperparameters)
-    model_path = "pretrained_models" +"/"+ model_name + "/" + model_name
-
+    model_path = "pretrained_models" +"/"+ model_name 
+    
+    print_tensors_in_checkpoint_file(file_name=tf.train.latest_checkpoint(model_path + "/"), tensor_name='', all_tensors = '',all_tensor_names = True)
+    
     with tf.Session() as sess:
-        #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
         model = ImageDecoder()
         pdm, images = model.test(filterSize_1,numFilters_1, filterSize_2,numFilters_2,
             filterSize_34,numFilters_34,filterSize_5,numFilters_5,strides,k)
 
-        
+            
         #saver = tf.train.import_meta_graph(model_path + ".meta")
-        #saver.restore(sess,tf.train.latest_checkpoint('./'))
+        #saver.restore(sess,tf.train.latemost_checkpoint('./'))
         
-
+        print(model_path + ".meta")
+        #saver = tf.train.import_meta_graph(model_path + "/" + model_name + ".meta")
         saver = tf.train.Saver()
-        saver.restore(sess,model_path)
-        print("var" % embed_word_W.eval())
+        #saver.restore(sess,model_path)
+        saver.restore(sess,tf.train.latest_checkpoint(model_path + "/"))
+        #print("var" % embed_word_W.eval())
+
         # Will need to change for validation
         image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
         feed_dict = {images: image_data}

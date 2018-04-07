@@ -554,7 +554,7 @@ class ImageDecoder():
             with tf.variable_scope("LSTM"):
             
                 # Initialize lstm cell
-                lstm = tf.contrib.rnn.LayerNormBasicLSTMCell(config.NUM_LSTM_UNITS)
+                lstm = tf.contrib.rnn.BasicLSTMCell(config.NUM_LSTM_UNITS)
 
                 # Initialize input, BATCH_SIZE x NUM_LSTM_UNITS
                 current_input = cnnOutput
@@ -567,40 +567,42 @@ class ImageDecoder():
                 # Needed to start model, tuple of vectors
                 prior_state = initial_hidden_state, initial_current_state
                 #prior_state = m.initial_state.eval()
-            
-            output, state = lstm(current_input, prior_state)
-            with tf.device("/cpu:0"):
-                    # Accounts for the one_hot vector
-                    # BATCH_SIZE x NUM_TOKENS matrix
-                    current_input = tf.nn.embedding_lookup(self.embedding_matrix, tf.cast(tf.zeros(config.BATCH_SIZE), tf.int32)) #+ self.bemb
+            with tf.variable_scope("loss_loop"):
+                with tf.variable_scope("lstm_function"):
+                    output, state = lstm(current_input, prior_state)
+                    with tf.device("/cpu:0"):
+                            # Accounts for the one_hot vector
+                            # BATCH_SIZE x NUM_TOKENS matrix
+                            current_input = tf.nn.embedding_lookup(self.embedding_matrix, tf.cast(tf.zeros(config.BATCH_SIZE), tf.int32)) + self.bemb
             print("cur i",current_input.shape)
             predicted_caption = []
             predictions_correct = []
 
             
-            # For training, need to loop through all the of possible positions
-            for i in range(config.MAX_CAP_LEN + 2):
-                tf.get_variable_scope().reuse_variables()
+            with tf.variable_scope("loss_loop"):
+                # For training, need to loop through all the of possible positions
+                for i in range(config.MAX_CAP_LEN + 2):
+                    tf.get_variable_scope().reuse_variables()
 
-                with tf.variable_scope("lstm_function"):
-                    # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
-                    output, state = lstm(current_input, prior_state)
-                
-                # Calculates the loss for the training, performs it in a slightly different manner than paper
-                logit_words = tf.matmul(output, self.embed_word_W) + self.embed_word_b # (batch_size, n_words)
+                    with tf.variable_scope("lstm_function"):
+                        # This line executes the actual gates of lstm to update values, output is BATCH_SIZE x NUM_LSTM_UNITS
+                        output, state = lstm(current_input, prior_state)
+                    
+                    # Calculates the loss for the training, performs it in a slightly different manner than paper
+                    logit_words = tf.matmul(output, self.embed_word_W) + self.embed_word_b # (batch_size, n_words)
 
-                predicted_word = tf.argmax(logit_words, 1)
+                    predicted_word = tf.argmax(logit_words, 1)
 
-                with tf.device("/cpu:0"):
-                    # Accounts for the one_hot vector
-                    # BATCH_SIZE x NUM_TOKENS matrix
-                    current_input = tf.nn.embedding_lookup(self.embedding_matrix, predicted_word)
-                
-                current_input += self.bemb
+                    with tf.device("/cpu:0"):
+                        # Accounts for the one_hot vector
+                        # BATCH_SIZE x NUM_TOKENS matrix
+                        current_input = tf.nn.embedding_lookup(self.embedding_matrix, predicted_word)
+                    
+                    current_input += self.bemb
 
-                predicted_caption.append(predicted_word)
-                
-                # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
+                    predicted_caption.append(predicted_word)
+                    
+                    # Needs to come after everything in the loop and evaluation process so that the variables can be run with the next input
     
         hidden_state, _ = prior_state
 
@@ -615,7 +617,7 @@ class ImageDecoder():
             for var in tf.trainable_variables():
                 with tf.name_scope(var.name[:var.name.find(":")]):
                     self.variable_summary(var)
-        
+
         with tf.name_scope("CNN_metrics"):
             tf.summary.histogram("Convolution_weights", self.conv_weights1_1)
             tf.summary.histogram("Bias_weights", self.conv_biases1_1)
