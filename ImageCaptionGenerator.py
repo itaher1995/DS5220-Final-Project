@@ -57,7 +57,7 @@ def getImageBatchFromPickle(pkl, data_directory):
         cap_row = imageBatch[imageBatch['file_name'] == f]
         captions.append(list(cap_row['mapped_captions'].item()))
     
-    return images, captions
+    return images, captionsit 
 
 def is_nonzero(num):
     if num != 3003:
