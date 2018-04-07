@@ -30,15 +30,22 @@ def getImageBatchFromPickle(pkl, data_directory):
     and the idx_captions.
     '''
     df = pd.read_pickle(pkl)
-    imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
-    imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
 
-    while (len(imageBatch['file_name'].unique()) < config.BATCH_SIZE):
+    while True:
         imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
         imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
 
-    # Just gets a couple images and captions for testing right now
-    image_filenames = list(imageBatch['file_name'])
+
+        while (len(imageBatch['file_name'].unique()) < config.BATCH_SIZE):
+            imageBatchIndex = np.random.choice(df.index,size=config.BATCH_SIZE)
+            imageBatch=df.iloc[imageBatchIndex][['file_name','mapped_captions']]
+
+        # Just gets a couple images and captions for testing right now
+        image_filenames = list(imageBatch['file_name'])
+
+        if set(image_filenames).intersection(os.listdir(data_directory))==set(image_filenames):
+            break
+
     #print(image_filenames)
     
     images = []
