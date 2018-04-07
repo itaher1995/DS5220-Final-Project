@@ -62,7 +62,7 @@ LEARNING_RATE = .001
 NUM_LSTM_EPOCHS = 200
 USE_PRETRAINED_MODEL = False
 
-SUMMARY_DIRECTORY = "tensorboard_summeries"   # Where to write the graphs of the model running
+SUMMARY_DIRECTORY = "tensorboard_summaries"   # Where to write the graphs of the model running
 USE_PRETRAINED_MODEL = False
 MODEL_PATH = "pretrained_models/model-1.ckpt"
 
