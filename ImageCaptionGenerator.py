@@ -55,7 +55,17 @@ def is_nonzero(num):
     else:
         return 0
 
-def train(filterSize,numFilters,strides,k,eta):
+def train(filterSize_1,
+        numFilters_1,
+        filterSize_2,
+        numFilters_2,
+        filterSize_34,
+        numFilters_34,
+        filterSize_5,
+        numFilters_5,
+        strides,
+        k,
+        eta):
     '''
     NOTE: will eventually read in data.
     '''
@@ -72,7 +82,16 @@ def train(filterSize,numFilters,strides,k,eta):
     with tf.Session() as sess:
         #model = ImageDecoder(config.IMG_SIZE, config.DIM_EMBEDDING, config.DIM_EMBEDDING, config.BATCH_SIZE, config.MAX_CAP_LEN +2, config.NUM_TOKENS, bias_init_vector=None)
         model = ImageDecoder()
-        loss, summary, pdm, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
+        loss, summary, pdm, images, captions, masks = model.buildModel(filterSize_1,
+                                                                        numFilters_1,
+                                                                        filterSize_2,
+                                                                        numFilters_2,
+                                                                        filterSize_34,
+                                                                        numFilters_34,
+                                                                        filterSize_5,
+                                                                        numFilters_5,
+                                                                        strides,
+                                                                        k)
         #loss, images, captions, masks = model.buildModel(filterSize,numFilters,strides,k)
 
         saver = tf.train.Saver(max_to_keep=50)

@@ -13,7 +13,17 @@ def idx_to_word_translate(idx_matrix, images):
 
 
 def main():
-	ImageCaptionGenerator.train(config.FILTER_SIZE,config.NUM_FILTERS,config.STRIDES,config.POOL_SIZE,config.LEARNING_RATE)
+	ImageCaptionGenerator.train(config.FILTER_SIZE_1,
+								config.NUM_FILTERS_1,
+								config.FILTER_SIZE_2,
+								config.NUM_FILTERS_2,
+								config.FILTER_SIZE_34,
+								config.NUM_FILTERS_34,
+								config.FILTER_SIZE_5,
+								config.NUM_FILTERS_5,
+								config.STRIDE,
+								config.POOL_SIZE,
+								config.LEARNING_RATE)
 
 
 
