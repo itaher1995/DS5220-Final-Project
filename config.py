@@ -11,11 +11,32 @@ IMG_WIDTH = 100
 IMG_SIZE = 100
 
 # CNN Hyper-parameters
+STRIDE = 2
+
+#Layer 1
 NUM_CHANNELS = 4
-FILTER_SIZE = 3
-NUM_FILTERS = 5
-FULLY_CON_LAYER_SIZE = 128
-STRIDES = 1
+FILTER_SIZE_1 = 5
+NUM_FILTERS_1 = 48
+
+
+#Layer 2
+FILTER_SIZE_2 = 3
+NUM_FILTERS_2 = 128
+
+
+#Layer 3/4
+FILTER_SIZE_34 = 2
+NUM_FILTERS_34 = 192
+
+
+#Layer 5
+FILTER_SIZE_5 = 3
+NUM_FILTERS_5 = 128
+
+#Layer 5
+
+#Pool
+POOL_STRIDES = 1
 POOL_SIZE = 2
 
 # For model.py
@@ -25,7 +46,7 @@ STOP_TOKEN_IDX = NUM_TOKENS - 1
 MAX_CAP_LEN = 35
 CHANGE_VOCAB = False
 CHANGE_IMAGES = False
-BATCH_SIZE = 5  # Of images and sentances sent into model
+BATCH_SIZE = 50  # Of images and sentances sent into model
 NUM_BATCHES = 5
 
 NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
@@ -37,8 +58,8 @@ NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
 NUM_LSTM_UNITS = NUM_CNN_OUTPUTS 
 DIM_EMBEDDING = NUM_CNN_OUTPUTS # Need to set this for embedding_matrix
 
-LEARNING_RATE = .1
-NUM_LSTM_EPOCHS = 1
+LEARNING_RATE = .001
+NUM_LSTM_EPOCHS = 100
 USE_PRETRAINED_MODEL = False
 
 SUMMARY_DIRECTORY = "tensorboard_summeries"   # Where to write the graphs of the model running

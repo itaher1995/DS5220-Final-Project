@@ -340,8 +340,14 @@ class ImageDecoder():
 
         return normFullConnected
     
-    def buildModel(self,filterSize,
-                          numFilters,
+    def buildModel(self,filterSize_1,
+                          numFilters_1,
+                          filterSize_2,
+                          numFilters_2,
+                          filterSize_34,
+                          numFilters_34,
+                          filterSize_5,
+                          numFilters_5,
                           strides,
                           k,
                           layerNorm = False):
@@ -363,23 +369,23 @@ class ImageDecoder():
         # Build CNN
         with tf.name_scope("Image_Encoder"):
             chunk, weights = self.createAlexNetChunk1(images,config.NUM_CHANNELS,
-                                                 filterSize, numFilters,
+                                                 filterSize_1, numFilters_1,
                                                  strides, k,1)
             
-            chunk2, weights2 = self.createAlexNetChunk1(chunk,numFilters,
-                                                 filterSize, numFilters,
+            chunk2, weights2 = self.createAlexNetChunk1(chunk,numFilters_1,
+                                                 filterSize_2, numFilters_2,
                                                  strides, k,2)
             
-            chunk3, weights3 = self.createAlexNetChunk2(chunk2,numFilters,
-                                                 filterSize, numFilters,
+            chunk3, weights3 = self.createAlexNetChunk2(chunk2,numFilters_2,
+                                                 filterSize_34, numFilters_34,
                                                  strides,3)
             
-            chunk4, weights4 = self.createAlexNetChunk2(chunk3,numFilters,
-                                                 filterSize, numFilters,
+            chunk4, weights4 = self.createAlexNetChunk2(chunk3,numFilters_34,
+                                                 filterSize_34, numFilters_34,
                                                  strides,4)
             
-            chunk5, weights5 = self.createAlexNetChunk2(chunk4,numFilters,
-                                                 filterSize, numFilters,
+            chunk5, weights5 = self.createAlexNetChunk2(chunk4,numFilters_34,
+                                                 filterSize_5, numFilters_5,
                                                  strides,5)
             
 
