@@ -17,9 +17,10 @@ from skimage import data
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 
 def idx_to_word_translate(idx_matrix, images):
+    print(idx_matrix)
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
     #print(type(idx_to_word))
-    new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix[0]]).T
+    new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix]).T
     print(new_caps)
 
 def getImageBatchFromPickle(pkl, data_directory):
@@ -57,13 +58,13 @@ def getImageBatchFromPickle(pkl, data_directory):
         cap_row = imageBatch[imageBatch['file_name'] == f]
         captions.append(list(cap_row['mapped_captions'].item()))
     
-    return images, captionsit 
+    return images, captions
 
 def is_nonzero(num):
-    if num != 3003:
-        return 1
-    else:
+    if num == config.PAD_TOKEN_IDX:
         return 0
+    else:
+        return 1
 
 def train(filterSize_1,
         numFilters_1,
@@ -154,7 +155,7 @@ def train(filterSize_1,
         saver.save(sess, model_path)
         summ_writer.close()
 
-        #idx_to_word_translate(pred_caps, image_data)
+        idx_to_word_translate(pred_caps, image_data)
 
     return loss_result
 
@@ -186,10 +187,6 @@ def test(filterSize_1,
         model = ImageDecoder()
         pdm, images = model.test(filterSize_1,numFilters_1, filterSize_2,numFilters_2,
             filterSize_34,numFilters_34,filterSize_5,numFilters_5,strides,k)
-
-            
-        #saver = tf.train.import_meta_graph(model_path + ".meta")
-        #saver.restore(sess,tf.train.latemost_checkpoint('./'))
         
         print(model_path + ".meta")
         #saver = tf.train.import_meta_graph(model_path + "/" + model_name + ".meta")

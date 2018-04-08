@@ -40,13 +40,14 @@ POOL_STRIDES = 1
 POOL_SIZE = 2
 
 # For model.py
-NUM_TOKENS = 3003
-START_TOKEN_IDX = NUM_TOKENS - 2
-STOP_TOKEN_IDX = NUM_TOKENS - 1
+NUM_TOKENS = 3004
+START_TOKEN_IDX = NUM_TOKENS - 3
+STOP_TOKEN_IDX = NUM_TOKENS - 2
+PAD_TOKEN_IDX = NUM_TOKENS - 1
 MAX_CAP_LEN = 35
 CHANGE_VOCAB = False
 CHANGE_IMAGES = False
-BATCH_SIZE = 100  # Of images and sentances sent into model
+BATCH_SIZE = 20  # Of images and sentances sent into model
 NUM_BATCHES = 5
 
 NUM_CNN_OUTPUTS = NUM_TOKENS	# Arbitrarily set for testing right now
@@ -59,12 +60,11 @@ NUM_LSTM_UNITS = NUM_CNN_OUTPUTS
 DIM_EMBEDDING = NUM_CNN_OUTPUTS # Need to set this for embedding_matrix
 
 LEARNING_RATE = .001
-NUM_LSTM_EPOCHS = 200
+NUM_LSTM_EPOCHS = 2
 USE_PRETRAINED_MODEL = False
 
 SUMMARY_DIRECTORY = "tensorboard_summaries"   # Where to write the graphs of the model running
 USE_PRETRAINED_MODEL = False
-MODEL_PATH = "pretrained_models/model-1.ckpt"
 
 
 
