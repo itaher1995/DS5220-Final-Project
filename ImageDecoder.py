@@ -471,8 +471,6 @@ class ImageDecoder():
                     masked_cross_entropy = cross_entropy * tf.cast(masks[:, i], tf.float32)
                     cross_entropies.append(masked_cross_entropy)
 
-                    ## need to fix masks i vs captions i - 1, something seems wrong
-
                     predicted_word = tf.argmax(logit_words, 1)
                     predicted_caption.append(predicted_word)
 
