@@ -8,7 +8,7 @@ Created on Tue Apr  3 17:29:04 2018
 from ImageDecoder import ImageDecoder
 import tensorflow as tf
 import config
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, corpus_bleu
 import pandas as pd
 import os
 from time import time
@@ -19,7 +19,7 @@ from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoi
 
 
 def idx_to_word_translate(idx_matrix, images):
-    print(idx_matrix)
+    #print(idx_matrix)
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
     #print(type(idx_to_word))
     new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix]).T
@@ -212,24 +212,26 @@ def test(filterSize_1,
         #print("var" % embed_word_W.eval())
 
         # Will need to change for validation
-        image_data, caption_data, image_files = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+        image_data, caption_data, image_files = getImageBatchFromPickle("val_data-1.pkl", "val2014_normalized")
         
         
         # Returns DataFrame with the filenames, english captions, and indexed captions of the image files for the loaded data
-        BLEU_captions = image_captions("train_data-1.pkl", image_files)
+        BLEU_captions = image_captions("val_data-1.pkl", image_files)
 
         feed_dict = {images: image_data}
         pred_caps = sess.run([pdm], feed_dict = feed_dict)
         
         
         captions=idx_to_word_translate(pred_caps[0], image_data)
-        imageCapDic = {image_files[i]:' '.join(list(captions[i])) for i in range(len(captions))}
-        matchedCaps = [(list(BLEU_captions.loc[BLEU_captions.file_name==k]['caption'].apply(lambda x: ' '.join(x))),imageCapDic[k]) for k in imageCapDic]
+        imageCapDic = {image_files[i]:list(captions[i]) for i in range(len(captions))}
+        matchedCaps = [(list(BLEU_captions.loc[BLEU_captions.file_name==k]['caption']),imageCapDic[k]) for k in imageCapDic]
         reference = [x[0] for x in matchedCaps]
         candidate = [x[1] for x in matchedCaps]
-        
+        #print(reference)
+        #print(candidate)
+        #print(candidate[0])
         avgBLEU = meanBLEUScore(candidate,reference)
-        
+        print(avgBLEU)
         summary={'filterSize_1':hyperparameters[0],
         'numFilters_1':hyperparameters[1],
         'filterSize_2':hyperparameters[2],
@@ -272,5 +274,5 @@ def meanBLEUScore(candidate3DArray,groundTruth2DArray):
     array that contains a 2D array of predicted words that correspond to a 
     sentence S and another array of arrays with the truth captions.
     '''
-    
-    return sum([sentence_bleu(candidate3DArray[i],groundTruth2DArray[i]) for i in range(len(groundTruth2DArray))])/len(groundTruth2DArray)
+
+    return sum([corpus_bleu([groundTruth2DArray[i]],[candidate3DArray[i]]) for i in range(len(groundTruth2DArray))])/len(groundTruth2DArray)
