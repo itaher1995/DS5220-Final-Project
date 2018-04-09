@@ -171,7 +171,7 @@ def train(filterSize_1,
 
         idx_to_word_translate(pred_caps, image_data)
 
-    return loss_result
+    return {'final_loss':loss_result,'model_filename':model_name}
 
 
 
