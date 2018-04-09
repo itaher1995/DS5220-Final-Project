@@ -16,12 +16,25 @@ import numpy as np
 from skimage import data
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 
+
+
 def idx_to_word_translate(idx_matrix, images):
     print(idx_matrix)
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
     #print(type(idx_to_word))
     new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix]).T
     print(new_caps)
+
+def image_captions(pkl, filenames):
+    df = pd.read_pickle(pkl)
+
+    indicies = []
+    for f in filenames:
+        temp_df = df[df['file_name'] == f]
+        indicies = indicies + list(temp_df.index)
+    
+    return df.iloc[indicies][['file_name', 'caption', 'mapped_captions']]
+
 
 def getImageBatchFromPickle(pkl, data_directory):
     '''
@@ -58,7 +71,7 @@ def getImageBatchFromPickle(pkl, data_directory):
         cap_row = imageBatch[imageBatch['file_name'] == f]
         captions.append(list(cap_row['mapped_captions'].item()))
     
-    return images, captions
+    return images, captions, image_filenames
 
 def is_nonzero(num):
     if num == config.PAD_TOKEN_IDX:
@@ -130,7 +143,7 @@ def train(filterSize_1,
 
         prior_loss = 0
         for epoch in range(config.NUM_LSTM_EPOCHS):
-            image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+            image_data, caption_data, _ = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
             
             mask_matrix = [[is_nonzero(idx) for idx in idx_cap] for idx_cap in caption_data]
 
@@ -147,6 +160,7 @@ def train(filterSize_1,
             if not epoch % 10:
                 saver.save(sess, model_path)#, global_step=epoch)#, write_meta_graph=False)
 
+            print(model_name)
             print("Num epochs", epoch,"   time", round(time() - start))
             print("Loss", loss_result, "   Prior loss", prior_loss,"   difference", prior_loss - loss_result)
             print()
@@ -187,6 +201,7 @@ def test(filterSize_1,
         model = ImageDecoder()
         pdm, images = model.test(filterSize_1,numFilters_1, filterSize_2,numFilters_2,
             filterSize_34,numFilters_34,filterSize_5,numFilters_5,strides,k)
+
         
         print(model_path + ".meta")
         #saver = tf.train.import_meta_graph(model_path + "/" + model_name + ".meta")
@@ -196,11 +211,15 @@ def test(filterSize_1,
         #print("var" % embed_word_W.eval())
 
         # Will need to change for validation
-        image_data, caption_data = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+        image_data, caption_data, image_files = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
+        
+        # Returns DataFrame with the filenames, english captions, and indexed captions of the image files for the loaded data
+        BLEU_captions = image_captions("train_data-1.pkl", image_files)
+
         feed_dict = {images: image_data}
         pred_caps = sess.run([pdm], feed_dict = feed_dict)
         
-        idx_to_word_translate(pred_caps, image_data)
+        idx_to_word_translate(pred_caps[0], image_data)
 
 def gridSearch(filterSize,numFilters,strides,k,eta):
     '''
