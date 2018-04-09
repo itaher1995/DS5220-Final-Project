@@ -2,6 +2,7 @@ import ImageCaptionGenerator
 import config
 import numpy as np
 import pandas as pd
+import os
 
 
 def idx_to_word_translate(idx_matrix, images):
@@ -23,30 +24,30 @@ def randomSearch(filterSize_1,
         strides,
         eta):
     LossCSV = []
-    bestResults = ImageCaptionGenerator.train(config.FILTER_SIZE_1,
-                 config.NUM_FILTERS_1,
-                 config.FILTER_SIZE_2, 
-                 config.NUM_FILTERS_2, 
-                 config.FILTER_SIZE_34, 
-                 config.NUM_FILTERS_34, 
-                 config.FILTER_SIZE_5, 
-                 config.NUM_FILTERS_5,
-                 config.STRIDE,
-                 config.POOL_SIZE,
-                 config.LEARNING_RATE)
-    fs1 = config.FILTER_SIZE_1
-    nf1 = config.NUM_FILTERS_1
-    fs2 = config.FILTER_SIZE_2
-    nf2 = config.NUM_FILTERS_2
-    fs34 = config.FILTER_SIZE_34
-    nf34 = config.NUM_FILTERS_34
-    fs5 = config.FILTER_SIZE_5
-    nf5 = config.NUM_FILTERS_5
-    s = config.STRIDE
-    e = config.LEARNING_RATE
-    LossCSV.append(bestResults)
+    # bestResults = ImageCaptionGenerator.train(config.FILTER_SIZE_1,
+    #              config.NUM_FILTERS_1,
+    #              config.FILTER_SIZE_2, 
+    #              config.NUM_FILTERS_2, 
+    #              config.FILTER_SIZE_34, 
+    #              config.NUM_FILTERS_34, 
+    #              config.FILTER_SIZE_5, 
+    #              config.NUM_FILTERS_5,
+    #              config.STRIDE,
+    #              config.POOL_SIZE,
+    #              config.LEARNING_RATE)
+    # fs1 = config.FILTER_SIZE_1
+    # nf1 = config.NUM_FILTERS_1
+    # fs2 = config.FILTER_SIZE_2
+    # nf2 = config.NUM_FILTERS_2
+    # fs34 = config.FILTER_SIZE_34
+    # nf34 = config.NUM_FILTERS_34
+    # fs5 = config.FILTER_SIZE_5
+    # nf5 = config.NUM_FILTERS_5
+    # s = config.STRIDE
+    # e = config.LEARNING_RATE
+    # LossCSV.append(bestResults)
 
-    for i in range(1):
+    for i in range(5):
         fs1 = np.random.choice(filterSize_1)
         fs2 = np.random.choice(filterSize_2)
         fs34 = np.random.choice(filterSize_34)
@@ -60,11 +61,11 @@ def randomSearch(filterSize_1,
         results = ImageCaptionGenerator.train(fs1,nf1,fs2,nf2,fs34,nf34,fs5,nf5,s,config.POOL_SIZE,e)
         LossCSV.append(results)
     df=pd.DataFrame.from_records(LossCSV)
-    df.to_csv('randomSearchTrain.csv',index=False)
+    df.to_csv('randomSearchTrain_TAHER.csv',index=False)
     
 
 def main():
-	"""
+	#"""
 	randomSearch([3,5,9],[48,72],[3,5,9],[128,192],[2,3,5],[128,192],[3,5,9],[128,192],[2,3],[0.0001,0.0005,0.001,0.005,0.01])
 	"""
     filenames = os.listdir('pretrained_models') #make this final layer
@@ -84,6 +85,33 @@ def main():
  #        eta)
 	#"""
 	
+def mainTest():
+    summaryResults=[]
+    runningBLEU=0
+    for folder in os.listdir('pretrained_models_TAHER'):
+        hyperparameters = folder.split('-')
+        hyperparameters = [int(x) if float(x)>=1 else float(x) for x in hyperparameters]
+        print(hyperparameters)
+        for i in range(1):
+            summary=ImageCaptionGenerator.test(hyperparameters[0],
+        hyperparameters[1],
+        hyperparameters[2],
+        hyperparameters[3],
+        hyperparameters[4],
+        hyperparameters[5],
+        hyperparameters[6],
+        hyperparameters[7],
+        hyperparameters[8],
+        hyperparameters[9],
+        hyperparameters[10])
+            if i==0:
+                summaryResults.append(summary)
+            runningBLEU += summary['BLEU_Score']
+        summaryResults[-1]['BLEU_Score']=runningBLEU/1
+    df=pd.DataFrame.from_records(summaryResults)
+    df.to_csv('summaryResults-Test.csv',index=False)
+        
 
 if __name__ == "__main__":
-	main()
+    #main()
+    mainTest()

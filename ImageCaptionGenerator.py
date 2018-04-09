@@ -23,7 +23,7 @@ def idx_to_word_translate(idx_matrix, images):
     idx_to_word = pd.read_pickle("idx_to_word-1.pkl")
     #print(type(idx_to_word))
     new_caps = np.array([np.array([idx_to_word[idx] for idx in idx_cap]) for idx_cap in idx_matrix]).T
-    print(new_caps)
+    return new_caps
 
 def image_captions(pkl, filenames):
     df = pd.read_pickle(pkl)
@@ -98,15 +98,15 @@ def train(filterSize_1,
     if not os.path.exists(config.SUMMARY_DIRECTORY):
             os.mkdir(config.SUMMARY_DIRECTORY)
 
-    if not os.path.exists('pretrained_models'):
-            os.mkdir('pretrained_models')
+    if not os.path.exists('pretrained_models_TAHER'):
+            os.mkdir('pretrained_models_TAHER')
 
     # Creates path for new model directory according to the parameters being searched
     hyperparameters = [filterSize_1,numFilters_1,filterSize_2,numFilters_2,filterSize_34,numFilters_34,
         filterSize_5,numFilters_5,strides,k,eta]
     hyperparameters = [str(hp) for hp in hyperparameters]
     model_name = "-".join(hyperparameters)
-    model_dir = "pretrained_models" +"/"+ model_name
+    model_dir = "pretrained_models_TAHER" +"/"+ model_name
     if not os.path.exists(model_dir):
             os.mkdir(model_dir)
     model_path = model_dir + "/" + model_name
@@ -169,7 +169,7 @@ def train(filterSize_1,
         saver.save(sess, model_path)
         summ_writer.close()
 
-        idx_to_word_translate(pred_caps, image_data)
+        #idx_to_word_translate(pred_caps, image_data)
 
     return {'final_loss':loss_result,'model_filename':model_name}
 
@@ -193,9 +193,10 @@ def test(filterSize_1,
         filterSize_5,numFilters_5,strides,k,eta]
     hyperparameters = [str(hp) for hp in hyperparameters]
     model_name = "-".join(hyperparameters)
-    model_path = "pretrained_models" +"/"+ model_name 
+    #model_name = "model"
+    model_path = "pretrained_models_TAHER" +"/"+ model_name 
     
-    print_tensors_in_checkpoint_file(file_name=tf.train.latest_checkpoint(model_path + "/"), tensor_name='', all_tensors = '',all_tensor_names = True)
+    #print_tensors_in_checkpoint_file(file_name=tf.train.latest_checkpoint(model_path + "/"), tensor_name='', all_tensors = '',all_tensor_names = True)
     
     with tf.Session() as sess:
         model = ImageDecoder()
@@ -213,13 +214,34 @@ def test(filterSize_1,
         # Will need to change for validation
         image_data, caption_data, image_files = getImageBatchFromPickle("train_data-1.pkl", "train2014_normalized")
         
+        
         # Returns DataFrame with the filenames, english captions, and indexed captions of the image files for the loaded data
         BLEU_captions = image_captions("train_data-1.pkl", image_files)
 
         feed_dict = {images: image_data}
         pred_caps = sess.run([pdm], feed_dict = feed_dict)
         
-        idx_to_word_translate(pred_caps[0], image_data)
+        
+        captions=idx_to_word_translate(pred_caps[0], image_data)
+        imageCapDic = {image_files[i]:' '.join(list(captions[i])) for i in range(len(captions))}
+        matchedCaps = [(list(BLEU_captions.loc[BLEU_captions.file_name==k]['caption'].apply(lambda x: ' '.join(x))),imageCapDic[k]) for k in imageCapDic]
+        reference = [x[0] for x in matchedCaps]
+        candidate = [x[1] for x in matchedCaps]
+        
+        avgBLEU = meanBLEUScore(candidate,reference)
+        
+        summary={'filterSize_1':hyperparameters[0],
+        'numFilters_1':hyperparameters[1],
+        'filterSize_2':hyperparameters[2],
+        'numFilters_2':hyperparameters[3],
+        'filterSize_34':hyperparameters[4],
+        'numFilters_34':hyperparameters[5],
+        'filterSize_5':hyperparameters[6],
+        'numFilters_5':hyperparameters[7],
+        'strides':hyperparameters[8],
+        'k':hyperparameters[9],
+        'eta':hyperparameters[10], 'BLEU_Score':avgBLEU}
+        return summary
 
 def gridSearch(filterSize,numFilters,strides,k,eta):
     '''
